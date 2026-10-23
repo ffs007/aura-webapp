@@ -1,0 +1,6 @@
+export const PRESENTATIONS = [{ value: "masculine", label: "Masculino" }, { value: "feminine", label: "Feminino" }];
+export const PRESENTATION_RULES = `Respeite a apresentação escolhida (masculina ou feminina), sem inferir identidade de gênero. São duas estruturas distintas de sugestões, nunca bloqueios de acesso. Na masculina, maquiagem somente se explicitamente desejada; barba somente se informada ou solicitada. Na feminina, maquiagem também é opcional. Bolsas e acessórios só quando a preferência os incluir: nunca assumir bolsa compacta. Dados ausentes não autorizam inferência. Evite "textura habitual": dê passos específicos para comprimento, textura e tempo informados; se faltam, indique o que perguntar. Rejeições pessoais têm prioridade. Não diagnostique nem prometa crescimento de barba.`;
+export function presentationContext(profile: unknown, override?: string) {
+  const p = (profile ?? {}) as Record<string, unknown>;
+  return { apresentacao: String(override || p["presentation"] || "não informada — não inferir"), maquiagem: p["makeup_preference"] ?? "não solicitada", barba: p["beard_preference"] ?? "não informada", acessorios: p["accessory_preferences"] ?? "não informados — não assumir bolsa" };
+}

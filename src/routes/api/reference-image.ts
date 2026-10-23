@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router";
+export const Route = createFileRoute("/api/reference-image")({ server: { handlers: { POST: async ({ request }) => { const { referenceRequest } = await import("@/lib/image-gateway.server"); return referenceRequest(request); } } } });

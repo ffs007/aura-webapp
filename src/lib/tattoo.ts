@@ -1,0 +1,17 @@
+import type { AuraPackage } from './aura';
+
+export const BODY_AREAS = ['Antebraço', 'Braço', 'Ombro', 'Costas', 'Peito', 'Costela', 'Coxa', 'Panturrilha', 'Tornozelo', 'Outra'];
+export const TATTOO_STYLES = ['Fine line', 'Blackwork', 'Geométrica', 'Botânica', 'Tradicional', 'Lettering', 'Abstrata', 'Ainda explorando'];
+export const TATTOO_DISCLAIMER = 'Tatuagens são permanentes. Valide escrita, símbolos, referências culturais, região e riscos de pele com profissionais qualificados. Este planejamento não substitui avaliação profissional.';
+export const DECISION_STEPS = ['Testar uma tatuagem temporária', 'Experimentar a referência impressa', 'Conferir posição e visibilidade no espelho', 'Respeitar meu período de reflexão', 'Consultar um tatuador qualificado', 'Validar escrita, símbolos e contexto cultural'];
+export const PRE_STEPS = ['Confirmar orientações e requisitos do estúdio', 'Conversar sobre alergias, sensibilidade, cicatrizes e condições de saúde', 'Verificar higiene, materiais e qualificação profissional', 'Confirmar desenho, escrita, tamanho e posição antes da sessão'];
+export const POST_STEPS = ['Seguir as orientações de higiene e curativo do profissional', 'Não coçar, arrancar crostas ou aplicar produtos não orientados', 'Confirmar orientações sobre sol, piscina, exercício e roupas', 'Revisar a cicatrização com o profissional antes de decidir um retoque'];
+export type TattooIntention = { title: string; area: string; style: string; meaning: string; size_cm: number; budget: number; visibility: string; restrictions: string; pain: string; sensitivity: string; existing: string; cover_up: string; future: string; reference_text: string };
+export const EMPTY_INTENTION: TattooIntention = { title: '', area: 'Antebraço', style: 'Fine line', meaning: '', size_cm: 8, budget: 500, visibility: 'Posso esconder', restrictions: '', pain: '', sensitivity: '', existing: '', cover_up: '', future: '', reference_text: '' };
+export type TattooConcept = { level: 'safe' | 'intermediate' | 'bold'; title: string; description: string; meaning: string; area: string; size_cm: string; visibility: string; style: string; questions: string[] };
+export type TattooPlan = AuraPackage & { concepts: TattooConcept[]; long_term: string[]; artist_questions: string[] };
+export function tattooToMarkdown(p: TattooPlan, level?: string) {
+  const concepts = level ? p.concepts.filter(c => c.level === level) : p.concepts;
+  return [`# ${p.title} — Briefing de tatuagem`, 'Gerado por IA', '', TATTOO_DISCLAIMER, '', ...concepts.flatMap(c => [`## ${c.title}`, `Estilo: ${c.style}`, `Região: ${c.area}`, `Dimensões sugeridas: ${c.size_cm}`, `Visibilidade: ${c.visibility}`, c.description, `Significado: ${c.meaning}`, ...c.questions.map(q => `- ${q}`), '']), '## Planejamento de longo prazo', ...p.long_term.map(x => `- ${x}`), '## Perguntas ao tatuador', ...p.artist_questions.map(x => `- ${x}`), '## Antes de decidir', ...DECISION_STEPS.map(x => `- [ ] ${x}`), '', 'Notas sensíveis e fotos não incluídas. Nada foi enviado a terceiros.'].join('\n');
+}
+export const tattooHead = (title: string) => ({ meta: [{ title: `${title} — Tatuagens · Aura ID` }, { name: 'description', content: 'Planejamento de tatuagem com intenção, privacidade e validação profissional.' }, { property: 'og:title', content: `${title} — Tatuagens · Aura ID` }, { property: 'og:description', content: 'Explore conceitos e decida no seu ritmo.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary_large_image' }] });
