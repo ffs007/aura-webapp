@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261023T031212788Z-29344-b2224624d10f",
+  "runId": "20261023T031212788Z-29344-b2224624d10f",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "baseline_partial",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline",
+        "target": ".",
+        "detail": "baseline_partial: baseline capture had enumeration or snapshot errors",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "ba0ad4fb905e35b75f4f10ca164b4bb1981c6c53",
+  "diffHash": "ae2baa7654ca3440681ff84096d1eaad3a8bcad1eaa1815312b153c210ddc80c",
+  "rulesVersion": "unavailable",
+  "sessionHash": "037655ff3d0b33822690fdac408003bad12e83a692efaca68f5a0e2a05858924",
+  "reportRef": ".mimosa/reports/task-review-sess_0a1e2718-136b-4702-8fbc-3dbd2f6ee311-20261023T031212788Z-29344-b2224624d10f.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "src/lib/trilhas.ts",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/components/TrilhaPicker.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "src/routes/_authenticated/route.tsx",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-10-23T03:12:13.461Z"
+}

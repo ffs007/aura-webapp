@@ -27,7 +27,7 @@ export const journeyData = createServerFn({ method: 'POST' }).middleware([requir
   return { goals: goals.data ?? [], plans: plans.data ?? [], steps: steps.data ?? [], reflections: reflections.data ?? [], reports: reports.data ?? [], photos: photos.data ?? [], reminders: reminders.data ?? [], consent: consent.data, packages: (packages.data ?? []).filter(p => p.kind !== 'tattoo_plan') };
 });
 
-export const saveGoal = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ goal: z.string().min(1).max(120), custom: z.string().max(300), why: z.string().max(1000) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const saveGoal = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ goal: z.string().min(1).max(120), custom: z.string().max(300), why: z.string().max(1000) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const r = await supabase.from('journey_goals').insert({ user_id: userId, ...data }).select('id').single();
   if (r.error) throw new Error(r.error.message);
   return r.data;
@@ -35,7 +35,7 @@ export const saveGoal = createServerFn({ method: 'POST' }).middleware([requireSu
 
 const stepIn = z.object({ title: z.string().min(1).max(160), category: z.enum(cats as [string, ...string[]]), period_index: z.number().int().min(1).max(13), package_id: z.string().uuid().nullable() });
 
-export const savePlan = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ goal_id: z.string().uuid().nullable(), title: z.string().min(1).max(120), period: z.enum(['monthly', 'quarterly']), starts_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), steps: z.array(stepIn).max(40) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const savePlan = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ goal_id: z.string().uuid().nullable(), title: z.string().min(1).max(120), period: z.enum(['monthly', 'quarterly']), starts_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), steps: z.array(stepIn).max(40) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const { steps, ...plan } = data;
   const p = await supabase.from('journey_plans').insert({ user_id: userId, ...plan }).select('id').single();
   if (p.error) throw new Error(p.error.message);
@@ -47,13 +47,13 @@ export const savePlan = createServerFn({ method: 'POST' }).middleware([requireSu
   return p.data;
 });
 
-export const addStep = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => stepIn.extend({ plan_id: z.string().uuid() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const addStep = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => stepIn.extend({ plan_id: z.string().uuid() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const r = await supabase.from('journey_steps').insert({ ...data, user_id: userId, status_history: [{ status: 'testing', at: new Date().toISOString() }] });
   if (r.error) throw new Error(r.error.message);
   return { ok: true };
 });
 
-export const suggestPlan = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ goal: z.string().max(300), why: z.string().max(1000), period: z.enum(['monthly', 'quarterly']) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const suggestPlan = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ goal: z.string().max(300), why: z.string().max(1000), period: z.enum(['monthly', 'quarterly']) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const { data: vp } = await supabase.from('visual_profiles').select('data').eq('user_id', userId).maybeSingle();
   const { data: pk } = await supabase.from('packages').select('kind,content').eq('user_id', userId).eq('status', 'saved').limit(15);
   const titles = (pk ?? []).map(p => ({ tipo: p.kind, titulo: (p.content as Record<string, unknown>)['title'] }));
@@ -65,7 +65,7 @@ export const suggestPlan = createServerFn({ method: 'POST' }).middleware([requir
   return { error: null, plan: r.data };
 });
 
-export const setStepStatus = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ id: z.string().uuid(), status: z.enum(statuses as [string, ...string[]]) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const setStepStatus = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ id: z.string().uuid(), status: z.enum(statuses as [string, ...string[]]) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const { data: s, error } = await supabase.from('journey_steps').select('status_history').eq('id', data.id).eq('user_id', userId).single();
   if (error) throw new Error(error.message);
   const hist = [...((s.status_history as unknown[]) ?? []), { status: data.status, at: new Date().toISOString() }].slice(-50);
@@ -75,14 +75,14 @@ export const setStepStatus = createServerFn({ method: 'POST' }).middleware([requ
   return { ok: true };
 });
 
-export const addReflection = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ plan_id: z.string().uuid(), step_id: z.string().uuid().nullable(), note: z.string().max(2000), emotional_note: z.string().max(2000), practicality: z.number().int().min(1).max(5).nullable(), maintenance: z.number().int().min(1).max(5).nullable(), self_esteem: z.number().int().min(1).max(5).nullable(), social_reception: z.string().max(500), include_in_report: z.boolean() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const addReflection = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ plan_id: z.string().uuid(), step_id: z.string().uuid().nullable(), note: z.string().max(2000), emotional_note: z.string().max(2000), practicality: z.number().int().min(1).max(5).nullable(), maintenance: z.number().int().min(1).max(5).nullable(), self_esteem: z.number().int().min(1).max(5).nullable(), social_reception: z.string().max(500), include_in_report: z.boolean() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const r = await supabase.from('journey_reflections').insert({ ...data, user_id: userId });
   if (r.error) throw new Error(r.error.message);
   await supabase.from('audit_events').insert({ user_id: userId, event: 'reflection_added', meta: { module: 'journey' } });
   return { ok: true };
 });
 
-export const registerJourneyPhoto = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ path: z.string().max(300), step_id: z.string().uuid().nullable(), pair_role: z.enum(['before', 'after']).nullable() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const registerJourneyPhoto = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ path: z.string().max(300), step_id: z.string().uuid().nullable(), pair_role: z.enum(['before', 'after']).nullable() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   if (!data.path.startsWith(`${userId}/journey-`)) throw new Error('Caminho inválido.');
   const { data: c } = await supabase.from('consents').select('photo_processing').eq('user_id', userId).maybeSingle();
   if (!c?.photo_processing) throw new Error('Ative a permissão de fotos em Configurações.');
@@ -92,7 +92,7 @@ export const registerJourneyPhoto = createServerFn({ method: 'POST' }).middlewar
   return { ok: true };
 });
 
-export const generateReport = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ plan_id: z.string().uuid(), kind: z.enum(['month', 'quarter']) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const generateReport = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ plan_id: z.string().uuid(), kind: z.enum(['month', 'quarter']) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const [plan, steps, refl, photos, consent, dna] = await Promise.all([
     supabase.from('journey_plans').select('*, journey_goals(goal,custom)').eq('id', data.plan_id).eq('user_id', userId).single(),
     supabase.from('journey_steps').select('id,title,category,status,status_history,package_id').eq('plan_id', data.plan_id).eq('user_id', userId),
@@ -122,18 +122,18 @@ export const generateReport = createServerFn({ method: 'POST' }).middleware([req
   return { error: null, id: ins.data.id };
 });
 
-export const addJourneyReminder = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ plan_id: z.string().uuid(), title: z.string().min(1).max(160), due_at: z.string() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const addJourneyReminder = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ plan_id: z.string().uuid(), title: z.string().min(1).max(160), due_at: z.string() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const r = await supabase.from('reminders').insert({ user_id: userId, journey_plan_id: data.plan_id, title: data.title, due_at: new Date(data.due_at).toISOString() });
   if (r.error) throw new Error(r.error.message);
   return { ok: true };
 });
 
-export const logJourneyEvent = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ event: z.enum(['export_requested', 'data_deleted']) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const logJourneyEvent = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ event: z.enum(['export_requested', 'data_deleted']) }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   await supabase.from('audit_events').insert({ user_id: userId, event: data.event, meta: { module: 'journey' } });
   return { ok: true };
 });
 
-export const deleteJourneyPlan = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ plan_id: z.string().uuid() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
+export const deleteJourneyPlan = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ plan_id: z.string().uuid() }).parse(d)).handler(async ({ data, context: { supabase, userId } }) => {
   const { data: steps } = await supabase.from('journey_steps').select('id').eq('plan_id', data.plan_id).eq('user_id', userId);
   const ids = (steps ?? []).map(s => s.id);
   if (ids.length) {

@@ -55,7 +55,7 @@ async function loadCtx(supabase: any, userId: string) {
 
 export const generateMakeupLooks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({
+  .validator((d) => z.object({
     mode: z.string().max(30), occasion: z.string().max(300).default(""), intensity: z.number().min(1).max(5),
     light: z.string().max(30).default("natural"), extra: z.string().max(800).default(""), emotion: z.string().max(40).default("curious"),
     presentation: z.enum(["masculine", "feminine"]).optional(),
@@ -108,7 +108,7 @@ Baseie-se em looks aprovados/salvos, rejeitados, feedback e perfil. name: nome p
 
 export const generateKit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ purpose: z.string().min(2).max(200) }).parse(d))
+  .validator((d) => z.object({ purpose: z.string().min(2).max(200) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { ctx } = await loadCtx(supabase, userId);

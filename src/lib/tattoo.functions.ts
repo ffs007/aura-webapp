@@ -23,14 +23,14 @@ export const tattooData = createServerFn({ method: 'POST' }).middleware([require
   for (const r of [projects, packages, profile, consent, logs, reminders, safety]) if (r.error) throw new Error(r.error.message);
   return { projects: projects.data ?? [], packages: packages.data ?? [], profile: profile.data, consent: consent.data, logs: logs.data ?? [], reminders: reminders.data ?? [], disclaimer: safety.data?.tattoo_disclaimer };
 });
-export const saveTattooProject = createServerFn({ method:'POST' }).middleware([requireSupabaseAuth]).inputValidator(d => z.object({ id:z.string().uuid().optional(), intention }).parse(d)).handler(async ({data,context:{supabase,userId}}) => {
+export const saveTattooProject = createServerFn({ method:'POST' }).middleware([requireSupabaseAuth]).validator(d => z.object({ id:z.string().uuid().optional(), intention }).parse(d)).handler(async ({data,context:{supabase,userId}}) => {
   const values = { user_id:userId,title:data.intention.title,intention:data.intention,updated_at:new Date().toISOString() };
   const r = data.id ? await supabase.from('tattoo_projects').update(values).eq('id',data.id).eq('user_id',userId).select('id').single() : await supabase.from('tattoo_projects').insert(values).select('id').single();
   if(r.error) throw new Error(r.error.message);
   await supabase.from('tattoo_profiles').upsert({user_id:userId,preferences:{area:data.intention.area,style:data.intention.style,visibility:data.intention.visibility},updated_at:new Date().toISOString()});
   return r.data;
 });
-export const generateTattoo = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(d=>z.object({id:z.string().uuid()}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
+export const generateTattoo = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).validator(d=>z.object({id:z.string().uuid()}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
   const [{data:project,error},{data:consent},{data:dna},{data:safety}] = await Promise.all([supabase.from('tattoo_projects').select('*').eq('id',data.id).eq('user_id',userId).single(),supabase.from('consents').select('*').eq('user_id',userId).maybeSingle(),supabase.from('visual_dna').select('summary').eq('user_id',userId).maybeSingle(),supabase.from('safety_config').select('blocked_terms,tattoo_disclaimer').eq('id',1).maybeSingle()]);
   if(error || !project || !consent) return {error:'Projeto indisponível ou consentimento pendente.',id:null};
   const perms=consent.module_permissions as Record<string,boolean>;
@@ -44,7 +44,7 @@ export const generateTattoo = createServerFn({method:'POST'}).middleware([requir
   await supabase.from('audit_events').insert([{user_id:userId,event:'concept_generated',meta:{module:'tattoo',dna_used:allowed}},{user_id:userId,event:'professional_validation_prompted',meta:{module:'tattoo'}}]);
   return {error:null,id:row.id};
 });
-export const tattooConsent = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(d=>z.object({value:z.boolean()}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
+export const tattooConsent = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).validator(d=>z.object({value:z.boolean()}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
   const {data:c}=await supabase.from('consents').select('photo_processing').eq('user_id',userId).single();
   if(data.value && !c?.photo_processing) throw new Error('Ative primeiro a permissão geral de fotos em Configurações.');
   const {error}=await supabase.from('tattoo_profiles').upsert({user_id:userId,body_photo_consent:data.value,consent_version:'tattoo-v1',updated_at:new Date().toISOString()});
@@ -52,7 +52,7 @@ export const tattooConsent = createServerFn({method:'POST'}).middleware([require
   await supabase.from('audit_events').insert({user_id:userId,event:data.value?'consent_granted':'consent_revoked',meta:{scope:'tattoo_body',version:'tattoo-v1'}});
   return {ok:true};
 });
-export const tattooFeedback = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(d=>z.object({id:z.string().uuid(),rating:z.number().int().min(1).max(5),reflection:z.string().max(1000)}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
+export const tattooFeedback = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).validator(d=>z.object({id:z.string().uuid(),rating:z.number().int().min(1).max(5),reflection:z.string().max(1000)}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
   const {data:p,error:pError}=await supabase.from('packages').select('id').eq('id',data.id).eq('kind','tattoo_plan').eq('user_id',userId).single();
   if(pError||!p)throw new Error('Versão indisponível.');
   const {error}=await supabase.from('feedback').insert({user_id:userId,package_id:data.id,module:'tattoo',rating:data.rating,reflection:data.reflection});
@@ -63,14 +63,14 @@ export const tattooFeedback = createServerFn({method:'POST'}).middleware([requir
   await supabase.from('audit_events').insert({user_id:userId,event:'feedback_given',meta:{module:'tattoo',dna_used:!!allowed}});
   return {ok:true,dna_used:!!allowed};
 });
-export const tattooPhoto = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(d=>z.object({project_id:z.string().uuid(),kind:z.enum(['tattoo_body','tattoo_reference']),path:z.string().max(500)}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
+export const tattooPhoto = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).validator(d=>z.object({project_id:z.string().uuid(),kind:z.enum(['tattoo_body','tattoo_reference']),path:z.string().max(500)}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
   if(!data.path.startsWith(`${userId}/tattoo-${data.kind==='tattoo_body'?'body':'reference'}-`)) throw new Error('Arquivo inválido.');
   const {error}=await supabase.from('photos').insert({user_id:userId,kind:data.kind,path:data.path,tattoo_project_id:data.project_id});
   if(error) throw new Error(error.message);
   await supabase.from('audit_events').insert({user_id:userId,event:'photo_uploaded',meta:{module:'tattoo'}});
   return {ok:true};
 });
-export const deleteTattoo = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator(d=>z.object({project_id:z.string().uuid().optional(),photos_only:z.boolean()}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
+export const deleteTattoo = createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).validator(d=>z.object({project_id:z.string().uuid().optional(),photos_only:z.boolean()}).parse(d)).handler(async ({data,context:{supabase,userId}})=>{
   let query=supabase.from('photos').select('id,path').eq('user_id',userId).in('kind',['tattoo_body','tattoo_reference']);
   if(data.project_id) query=query.eq('tattoo_project_id',data.project_id);
   const {data:photos,error}=await query; if(error) throw new Error(error.message);

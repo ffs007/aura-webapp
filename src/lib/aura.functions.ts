@@ -47,7 +47,7 @@ const MODULE_OF: Record<string, string> = { makeup: "makeup", hair: "hair", clot
 
 export const generatePackages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({
+  .validator((d) => z.object({
     entryMode: z.string().max(40), emotionalMode: z.string().max(40), occasion: z.string().max(500).default(""),
     intensity: z.number().min(1).max(5), extra: z.string().max(1000).default(""), adaptFrom: z.string().max(4000).optional(),
     presentation: z.enum(["masculine", "feminine"]).optional(),

@@ -23,7 +23,7 @@ function twoSentences(t: string) {
 
 export const onboardingHelp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({
+  .validator((d) => z.object({
     field: z.string().max(120), hint: z.string().max(300), options: z.array(z.string().max(60)).max(12),
     question: z.string().min(1).max(500), history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(600) })).max(10),
   }).parse(d))
@@ -35,7 +35,7 @@ export const onboardingHelp = createServerFn({ method: "POST" })
 
 export const generateAvatar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ description: z.string().max(600) }).parse(d))
+  .validator((d) => z.object({ description: z.string().max(600) }).parse(d))
   .handler(async ({ data, context }) => {
     const key = process.env["LOVABLE_API_KEY"];
     if (!key) return { error: "A IA ainda não está configurada.", path: null };

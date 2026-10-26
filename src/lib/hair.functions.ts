@@ -38,7 +38,7 @@ ${PRESENTATION_RULES}
 
 export const generateHairPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ goal: z.string().max(30), desire: z.string().max(800).default(""), emotion: z.string().max(40).default("curious"), presentation: z.enum(["masculine", "feminine"]).optional() }).parse(d))
+  .validator((d) => z.object({ goal: z.string().max(30), desire: z.string().max(800).default(""), emotion: z.string().max(40).default("curious"), presentation: z.enum(["masculine", "feminine"]).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: vp } = await supabase.from("visual_profiles").select("data").eq("user_id", userId).maybeSingle();

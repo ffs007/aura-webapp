@@ -53,7 +53,7 @@ async function loadCtx(supabase: any, userId: string) {
 
 export const generateOutfits = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ occasion: z.string().max(60), weather: z.string().max(30), extra: z.string().max(600).default(""), emotion: z.string().max(40).default("curious"), presentation: z.enum(["masculine", "feminine"]).optional() }).parse(d))
+  .validator((d) => z.object({ occasion: z.string().max(60), weather: z.string().max(30), extra: z.string().max(600).default(""), emotion: z.string().max(40).default("curious"), presentation: z.enum(["masculine", "feminine"]).optional() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { consent, ctx, dnaAllowed } = await loadCtx(supabase, userId);
@@ -93,7 +93,7 @@ export const analyzeWardrobe = createServerFn({ method: "POST" })
 
 export const checkPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ item: z.string().min(2).max(200), price: z.string().max(40).default(""), reason: z.string().max(400).default("") }).parse(d))
+  .validator((d) => z.object({ item: z.string().min(2).max(200), price: z.string().max(40).default(""), reason: z.string().max(400).default("") }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { ctx } = await loadCtx(supabase, userId);
@@ -122,7 +122,7 @@ export const generateMissions = createServerFn({ method: "POST" })
 
 export const setOutfitStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid(), status: z.enum(["approved", "testing", "failed", "later", "implemented"]) }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid(), status: z.enum(["approved", "testing", "failed", "later", "implemented"]) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: pkg, error } = await supabase.from("packages").update({ status: data.status }).eq("id", data.id).select("content").single();

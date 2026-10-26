@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import hero from "@/assets/hero.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,8 +41,15 @@ function Landing() {
             <Button asChild size="lg" variant="outline"><a href="#principios">Nossos princípios</a></Button>
           </div>
         </div>
-        <div className="animate-rise overflow-hidden rounded-[2rem] shadow-soft">
-          <img src={hero} alt="Lenço de seda, brinco e amostras de tecido sobre linho" className="aspect-square w-full object-cover" width={1280} height={1280} />
+        {/* Hero em CSS até existir src/assets/hero.jpg no projeto (binário não veio no export do Lovable).
+            Para voltar à foto: adicione o arquivo e restaure `import hero from "@/assets/hero.jpg"` + <img>. */}
+        <div className="animate-rise relative aspect-square w-full overflow-hidden rounded-[2rem] shadow-soft" role="img" aria-label="Lenço de seda, brinco e amostras de tecido sobre linho">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#efe6d8] via-[#e8dccb] to-[#dcc9b4]" />
+          <div className="absolute left-[12%] top-[14%] h-40 w-40 rounded-full bg-[#c98a6b]/70 blur-[2px]" />
+          <div className="absolute right-[14%] top-[30%] h-56 w-56 rounded-full bg-[#8f6b52]/50 blur-[1px]" />
+          <div className="absolute bottom-[12%] left-[30%] h-32 w-32 rounded-full bg-[#b3572e]/40" />
+          <div className="absolute bottom-[24%] right-[24%] h-20 w-20 rounded-full border-8 border-[#e8dcc7]/80" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
         </div>
       </main>
       <section id="principios" className="mx-auto max-w-6xl px-6 pb-24">

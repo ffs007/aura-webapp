@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { optLabel } from "./onboarding";
 
 export const prepareReference = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => z.object({ packageId: z.string().uuid().optional(), slot: z.string().max(30), agree: z.boolean() }).parse(d))
+  .validator(d => z.object({ packageId: z.string().uuid().optional(), slot: z.string().max(30), agree: z.boolean() }).parse(d))
   .handler(async ({ data, context: { supabase, userId } }) => {
     const { data: consent } = await supabase.from("consents").select("photo_processing,image_generation").eq("user_id", userId).maybeSingle();
     if (!consent?.photo_processing) throw new Error("Ative o processamento de fotos e referências em Configurações para guardar imagens privadas.");
@@ -42,7 +42,7 @@ export const prepareReference = createServerFn({ method: "POST" }).middleware([r
   });
 
 export const finishReference = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => z.object({ id: z.string().uuid(), path: z.string().optional(), error: z.string().max(1000).optional() }).parse(d))
+  .validator(d => z.object({ id: z.string().uuid(), path: z.string().optional(), error: z.string().max(1000).optional() }).parse(d))
   .handler(async ({ data, context: { supabase, userId } }) => {
     const { data: row } = await supabase.from("generated_references").select("status").eq("id", data.id).eq("user_id", userId).maybeSingle();
     if (!row || !["ready", "generating"].includes(row.status)) throw new Error("Solicitação encerrada.");
