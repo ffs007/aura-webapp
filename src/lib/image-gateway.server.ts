@@ -1,9 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
+
+// Hosts autorizados para chamadas de rede deste módulo: o provedor de IA de imagens e o próprio Supabase.
+// Nenhuma URL fornecida pelo usuário é usada como destino de fetch aqui.
+const IMAGE_PROVIDER_ORIGIN = "https://ai.gateway.lovable.dev";
+
+function assertSafeTarget(raw: string, allowedHosts: string[]): boolean {
+  try {
+    const { protocol, hostname } = new URL(raw);
+    return protocol === "https:" && allowedHosts.includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
 export async function referenceRequest(request: Request) {
   const token = request.headers.get("authorization");
   const url = process.env["SUPABASE_URL"], key = process.env["SUPABASE_PUBLISHABLE_KEY"];
   if (!token?.startsWith("Bearer ") || !url || !key) return new Response("Entre na sua conta.", { status: 401 });
-  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: token }, fetch: (input, init) => { const h = new Headers(init?.headers); h.set("apikey", key); return fetch(input, { ...init, headers: h }); } } });
+  const supabaseHost = new URL(url).hostname;
+  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: token }, fetch: (input, init) => { const target = typeof input === "string" ? input : input instanceof URL ? input.href : input.url; if (!assertSafeTarget(target, [supabaseHost])) return Promise.reject(new Error("Destino de rede não autorizado.")); const h = new Headers(init?.headers); h.set("apikey", key); return fetch(input, { ...init, headers: h }); } } });
   const { data: auth, error } = await db.auth.getUser(token.slice(7));
   if (error || !auth.user) return new Response("Entre na sua conta.", { status: 401 });
   const userId = auth.user.id;

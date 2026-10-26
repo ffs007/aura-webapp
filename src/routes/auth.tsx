@@ -46,6 +46,16 @@ function AuthPage() {
   }
 
   async function google() {
+    // No host do Lovable usamos o cloud-auth deles; fora dele (localhost/publicação própria) o Supabase Auth direto.
+    const noLovable = !/(^|\.)lovableproject\.com$|(^|\.)lovableproject-dev\.com$|(^|\.)lovable\.app$/.test(window.location.hostname);
+    if (noLovable) {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin + "/auth" },
+      });
+      if (error) toast.error(error.message ?? "Não foi possível entrar com o Google");
+      return;
+    }
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/auth" });
     if (r.error) toast.error(r.error.message ?? "Não foi possível entrar com o Google");
   }
