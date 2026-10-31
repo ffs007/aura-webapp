@@ -77,7 +77,7 @@ function LookDetail() {
             <p className="mt-2 text-xs text-muted-foreground">{v.time_minutes} min · habilidade {SKILL_LABEL[v.skill] ?? v.skill} · {v.cost_brl}</p>
             <h4 className="mt-3 text-sm font-medium">Checklist de produtos</h4>
             <ul className="mt-1 space-y-1 text-sm">{v.products.map((x, i) => <li key={i}>☐ {x}</li>)}</ul>
-            <ReferenceImage packageId={id} slot={v.level} />
+            <ReferenceImage packageId={id} slot={v.level} look />
             <h4 className="mt-3 text-sm font-medium">Ordem de aplicação</h4>
             <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm">{v.steps.map((x, i) => <li key={i}>{x}</li>)}</ol>
           </div>

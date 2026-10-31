@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAuraPassRouteImport } from './routes/_authenticated/aura-pass'
 import { Route as AuthenticatedBarbaRouteImport } from './routes/_authenticated/barba'
 import { Route as AuthenticatedCabeloRouteRouteImport } from './routes/_authenticated/cabelo/route'
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
@@ -22,7 +23,9 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDnaRouteRouteImport } from './routes/_authenticated/dna/route'
 import { Route as AuthenticatedExportRouteImport } from './routes/_authenticated/export'
 import { Route as AuthenticatedMaquiagemRouteRouteImport } from './routes/_authenticated/maquiagem/route'
+import { Route as AuthenticatedModeloRouteImport } from './routes/_authenticated/modelo'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedRetratoRouteImport } from './routes/_authenticated/retrato'
 import { Route as AuthenticatedRoupasRouteRouteImport } from './routes/_authenticated/roupas/route'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
@@ -91,6 +94,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAuraPassRoute = AuthenticatedAuraPassRouteImport.update({
+  id: '/aura-pass',
+  path: '/aura-pass',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBarbaRoute = AuthenticatedBarbaRouteImport.update({
   id: '/barba',
   path: '/barba',
@@ -139,9 +147,19 @@ const AuthenticatedMaquiagemRouteRoute =
     path: '/maquiagem',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedModeloRoute = AuthenticatedModeloRouteImport.update({
+  id: '/modelo',
+  path: '/modelo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRetratoRoute = AuthenticatedRetratoRouteImport.update({
+  id: '/retrato',
+  path: '/retrato',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRoupasRouteRoute =
@@ -436,13 +454,16 @@ export interface FileRoutesByFullPath {
   '/roupas': typeof AuthenticatedRoupasRouteRouteWithChildren
   '/tatuagem': typeof AuthenticatedTatuagemRouteRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
+  '/aura-pass': typeof AuthenticatedAuraPassRoute
   '/barba': typeof AuthenticatedBarbaRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/export': typeof AuthenticatedExportRoute
+  '/modelo': typeof AuthenticatedModeloRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/retrato': typeof AuthenticatedRetratoRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
@@ -494,13 +515,16 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/aura-pass': typeof AuthenticatedAuraPassRoute
   '/barba': typeof AuthenticatedBarbaRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/compare': typeof AuthenticatedCompareRoute
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/export': typeof AuthenticatedExportRoute
+  '/modelo': typeof AuthenticatedModeloRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/retrato': typeof AuthenticatedRetratoRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
@@ -559,13 +583,16 @@ export interface FileRoutesById {
   '/_authenticated/roupas': typeof AuthenticatedRoupasRouteRouteWithChildren
   '/_authenticated/tatuagem': typeof AuthenticatedTatuagemRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/aura-pass': typeof AuthenticatedAuraPassRoute
   '/_authenticated/barba': typeof AuthenticatedBarbaRoute
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/consent': typeof AuthenticatedConsentRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/export': typeof AuthenticatedExportRoute
+  '/_authenticated/modelo': typeof AuthenticatedModeloRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/retrato': typeof AuthenticatedRetratoRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
@@ -624,13 +651,16 @@ export interface FileRouteTypes {
     | '/roupas'
     | '/tatuagem'
     | '/admin'
+    | '/aura-pass'
     | '/barba'
     | '/collections'
     | '/compare'
     | '/consent'
     | '/dashboard'
     | '/export'
+    | '/modelo'
     | '/onboarding'
+    | '/retrato'
     | '/settings'
     | '/studio'
     | '/api/reference-image'
@@ -682,13 +712,16 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/admin'
+    | '/aura-pass'
     | '/barba'
     | '/collections'
     | '/compare'
     | '/consent'
     | '/dashboard'
     | '/export'
+    | '/modelo'
     | '/onboarding'
+    | '/retrato'
     | '/settings'
     | '/studio'
     | '/api/reference-image'
@@ -746,13 +779,16 @@ export interface FileRouteTypes {
     | '/_authenticated/roupas'
     | '/_authenticated/tatuagem'
     | '/_authenticated/admin'
+    | '/_authenticated/aura-pass'
     | '/_authenticated/barba'
     | '/_authenticated/collections'
     | '/_authenticated/compare'
     | '/_authenticated/consent'
     | '/_authenticated/dashboard'
     | '/_authenticated/export'
+    | '/_authenticated/modelo'
     | '/_authenticated/onboarding'
+    | '/_authenticated/retrato'
     | '/_authenticated/settings'
     | '/_authenticated/studio'
     | '/api/reference-image'
@@ -838,6 +874,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/aura-pass': {
+      id: '/_authenticated/aura-pass'
+      path: '/aura-pass'
+      fullPath: '/aura-pass'
+      preLoaderRoute: typeof AuthenticatedAuraPassRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/barba': {
       id: '/_authenticated/barba'
       path: '/barba'
@@ -901,11 +944,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaquiagemRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/modelo': {
+      id: '/_authenticated/modelo'
+      path: '/modelo'
+      fullPath: '/modelo'
+      preLoaderRoute: typeof AuthenticatedModeloRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/retrato': {
+      id: '/_authenticated/retrato'
+      path: '/retrato'
+      fullPath: '/retrato'
+      preLoaderRoute: typeof AuthenticatedRetratoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/roupas': {
@@ -1383,13 +1440,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRoupasRouteRoute: typeof AuthenticatedRoupasRouteRouteWithChildren
   AuthenticatedTatuagemRouteRoute: typeof AuthenticatedTatuagemRouteRouteWithChildren
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAuraPassRoute: typeof AuthenticatedAuraPassRoute
   AuthenticatedBarbaRoute: typeof AuthenticatedBarbaRoute
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedConsentRoute: typeof AuthenticatedConsentRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExportRoute: typeof AuthenticatedExportRoute
+  AuthenticatedModeloRoute: typeof AuthenticatedModeloRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedRetratoRoute: typeof AuthenticatedRetratoRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
   AuthenticatedJornadaDiarioRoute: typeof AuthenticatedJornadaDiarioRoute
@@ -1411,13 +1471,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRoupasRouteRoute: AuthenticatedRoupasRouteRouteWithChildren,
   AuthenticatedTatuagemRouteRoute: AuthenticatedTatuagemRouteRouteWithChildren,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAuraPassRoute: AuthenticatedAuraPassRoute,
   AuthenticatedBarbaRoute: AuthenticatedBarbaRoute,
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedConsentRoute: AuthenticatedConsentRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExportRoute: AuthenticatedExportRoute,
+  AuthenticatedModeloRoute: AuthenticatedModeloRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedRetratoRoute: AuthenticatedRetratoRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
   AuthenticatedJornadaDiarioRoute: AuthenticatedJornadaDiarioRoute,

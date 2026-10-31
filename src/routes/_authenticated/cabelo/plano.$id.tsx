@@ -89,7 +89,7 @@ function Plan() {
                 {x.high_maintenance && <span className="rounded-full bg-accent/15 px-2 py-0.5">Alta manutenção</span>}
                 {x.professional_validation && <span className="rounded-full bg-secondary px-2 py-0.5">Validar com profissional</span>}
               </div>
-              <ReferenceImage packageId={id} slot={x.level} />
+              <ReferenceImage packageId={id} slot={x.level} look />
               {x.warnings?.length > 0 && <ul className="list-disc pl-5 text-xs text-muted-foreground">{x.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
             </div>
           ))}

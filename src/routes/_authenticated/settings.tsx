@@ -79,9 +79,13 @@ function Settings() {
     <div className="max-w-3xl space-y-10">
       <h1 className="text-5xl">Configurações e dados</h1>
       <section className="space-y-3">
+        <h2 className="text-3xl">Assinatura</h2>
+        <Button asChild variant="outline"><Link to="/aura-pass">Aura Pass — assinatura, pagamento e cancelamento</Link></Button>
+      </section>
+      <section className="space-y-3">
         <h2 className="text-3xl">Consentimento</h2>
         <Button asChild variant="outline"><Link to="/onboarding">Editar estrutura masculina/feminina e preferências</Link></Button>
-        <label className="flex items-start justify-between gap-6 rounded-lg border bg-card p-5"><div><div className="font-medium">Imagens geradas por IA</div><p className="text-sm text-muted-foreground">Pessoa fictícia e conceitos privados, sem enviar fotos pessoais. Cada geração usa créditos de IA.</p></div><Switch checked={!!c?.image_generation} onCheckedChange={v => toggle("image_generation", v)} /></label>
+        <label className="flex items-start justify-between gap-6 rounded-lg border bg-card p-5"><div><div className="font-medium">Imagens geradas por IA</div><p className="text-sm text-muted-foreground">Pessoa fictícia, conceitos privados e o <strong>Aura Retrato</strong> (edição na sua foto — exige também a permissão de fotos). Cada geração usa créditos de IA.</p></div><Switch checked={!!c?.image_generation} onCheckedChange={v => toggle("image_generation", v)} /></label>
         {CONSENT_ITEMS.map((i) => (
           <label key={i.key} className="flex items-start justify-between gap-6 rounded-2xl border bg-card p-5">
             <div><div className="font-medium">{i.title}</div><p className="text-sm text-muted-foreground">{i.body}</p></div>

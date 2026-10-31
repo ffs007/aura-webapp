@@ -66,7 +66,7 @@ function Look() {
           <div key={v.level} className="space-y-2 rounded-2xl border bg-card p-5">
             <div className="text-xs uppercase tracking-wide text-accent">{LEVEL_LABEL[v.level]}</div>
             <p className="text-sm">{v.summary}</p>
-            <ReferenceImage packageId={id} slot={v.level} />
+            <ReferenceImage packageId={id} slot={v.level} look />
             <ul className="space-y-1 text-sm">{v.pieces.map((p) => <li key={p.piece} className="flex justify-between gap-2"><span>{p.piece} <span className="text-xs text-muted-foreground">({p.role})</span></span>{p.from_wardrobe ? <span className="text-xs text-accent">seu</span> : <span className="text-xs text-muted-foreground">ideia</span>}</li>)}</ul>
           </div>
         ))}

@@ -31,5 +31,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Segredos e ambientes locais — NUNCA versionar
+.env
+.env.*
+!.env.example
+
 # estado de scanner de sessão
 .mimosa/
