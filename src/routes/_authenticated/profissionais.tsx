@@ -6,7 +6,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { meusBriefings, salvarProfissional } from '@/lib/profissionais.functions';
+import { meusBriefings, salvarProfissional, briefingsRecebidos, responderBriefing, type BriefingRecebido } from '@/lib/profissionais.functions';
 
 export const Route = createFileRoute('/_authenticated/profissionais')({
   head: () => ({ meta: [{ title: 'Profissionais · Aura ID' }] }),
@@ -18,17 +18,34 @@ const PROFISSOES: [string, string][] = [
   ['esteticista', 'Esteticista'], ['barbeiro', 'Barbeiro'], ['manicure', 'Manicure'],
 ];
 
-type Envio = { id: string; titulo: string; texto: string; modulo: string | null; status: string; resposta: string | null; created_at: string; profissional: { nome: string; nome_salao: string | null; whatsapp: string | null } | null };
+type Envio = { id: string; titulo: string; texto: string; modulo: string | null; status: string; resposta: string | null; created_at: string; faz: boolean | null; orcamento_valor: number | null; orcamento_prazo: string | null; profissional: { nome: string; nome_salao: string | null; whatsapp: string | null } | null };
 
 function Page() {
-  const meus = useServerFn(meusBriefings), salvar = useServerFn(salvarProfissional);
-  const [aba, setAba] = useState<'envios' | 'cadastro'>('envios');
+  const meus = useServerFn(meusBriefings), salvar = useServerFn(salvarProfissional), recebidosFn = useServerFn(briefingsRecebidos), responder = useServerFn(responderBriefing);
+  const [aba, setAba] = useState<'envios' | 'recebidos' | 'cadastro'>('envios');
   const [envios, setEnvios] = useState<Envio[] | null>(null);
+  const [recebidos, setRecebidos] = useState<BriefingRecebido[] | null>(null);
+  const [respondendo, setRespondendo] = useState("");
+  const [respostaForm, setRespostaForm] = useState<{ valor: string; prazo: string; obs: string }>({ valor: '', prazo: '', obs: '' });
   const [salvando, setSalvando] = useState(false);
   const [form, setForm] = useState({ nome: '', profissao: 'maquiadora', nome_salao: '', cep: '', whatsapp: '', instagram: '', bio: '', raio: 25 });
   const [err, setErr] = useState('');
 
-  useEffect(() => { meus().then(setEnvios).catch(() => setEnvios([])); }, []);
+  useEffect(() => {
+    meus().then(setEnvios).catch(() => setEnvios([]));
+    recebidosFn().then((r) => { setRecebidos(r); if (r.length) setAba('recebidos'); }).catch(() => setRecebidos([]));
+  }, []);
+
+  async function responderBriefingUI(b: BriefingRecebido, faz: boolean) {
+    setRespondendo(b.id);
+    try {
+      await responder({ data: { id: b.id, faz, valor: faz ? Number(respostaForm.valor.replace(',', '.')) || undefined : undefined, prazo: respostaForm.prazo || undefined, resposta: respostaForm.obs || undefined } });
+      toast.success(faz ? 'Orçamento enviado à cliente!' : 'Recusa registrada.');
+      const r = await recebidosFn();
+      setRecebidos(r);
+      setRespostaForm({ valor: '', prazo: '', obs: '' });
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível responder.'); } finally { setRespondendo(''); }
+  }
 
   async function cadastrar() {
     setErr(''); setSalvando(true);
@@ -54,10 +71,43 @@ function Page() {
         <p className="mt-3 text-muted-foreground">Os briefings que você gerou podem ir direto para profissionais perto de você — e quem é da área pode se cadastrar para recebê-los.</p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button size="sm" variant={aba === 'envios' ? 'default' : 'outline'} onClick={() => setAba('envios')}>Meus envios</Button>
+        {(recebidos?.length ?? 0) > 0 && <Button size="sm" variant={aba === 'recebidos' ? 'default' : 'outline'} onClick={() => setAba('recebidos')}>Recebidos ({recebidos?.length})</Button>}
         <Button size="sm" variant={aba === 'cadastro' ? 'default' : 'outline'} onClick={() => setAba('cadastro')}>Sou profissional — cadastrar</Button>
       </div>
+
+      {aba === 'recebidos' && (
+        <section className="space-y-3">
+          {recebidos?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum briefing recebido ainda. Quando uma cliente da sua região enviar, ele aparece aqui.</p>}
+          {recebidos?.map((b) => (
+            <article key={b.id} className="space-y-3 rounded-lg border bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">{b.titulo} <span className="text-xs text-muted-foreground">({b.modulo ?? 'visual'} · {new Date(b.created_at).toLocaleDateString('pt-BR')})</span></p>
+                <span className="text-xs text-muted-foreground">{b.status === 'orcado' ? `💰 Orçado${b.orcamento_valor ? ` · R$ ${b.orcamento_valor.toFixed(2)}` : ''}` : b.status === 'recusado' ? '✖ Recusado' : '📤 Aguardando você'}</span>
+              </div>
+              <details><summary className="cursor-pointer text-xs text-accent">Ler o briefing</summary><div className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-background p-3 text-xs">{b.texto}</div></details>
+              {b.status === 'enviado' ? (
+                <div className="space-y-2 rounded border bg-background p-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="text-xs">Valor (R$)<Input aria-label="Valor do orçamento" className="mt-1 h-8" inputMode="decimal" placeholder="ex.: 150,00" value={respostaForm.valor} onChange={(e) => setRespostaForm({ ...respostaForm, valor: e.target.value })} /></label>
+                    <label className="text-xs">Prazo / disponibilidade<Input aria-label="Prazo" className="mt-1 h-8" placeholder="ex.: esta semana" value={respostaForm.prazo} onChange={(e) => setRespostaForm({ ...respostaForm, prazo: e.target.value })} /></label>
+                  </div>
+                  <label className="block text-xs">Observação para a cliente (opcional)<Textarea aria-label="Observação" className="mt-1" rows={2} maxLength={2000} value={respostaForm.obs} onChange={(e) => setRespostaForm({ ...respostaForm, obs: e.target.value })} /></label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" disabled={respondendo === b.id || !respostaForm.valor} onClick={() => void responderBriefingUI(b, true)}>💰 Faço — enviar orçamento</Button>
+                    <Button size="sm" variant="outline" disabled={respondendo === b.id} onClick={() => void responderBriefingUI(b, false)}>✖ Não faço este pedido</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded border border-accent/40 bg-accent/5 p-3 text-xs whitespace-pre-wrap">
+                  Sua resposta: {b.faz ? `faço o pedido${b.orcamento_valor ? ` por R$ ${b.orcamento_valor.toFixed(2)}` : ''}${b.orcamento_prazo ? ` · prazo: ${b.orcamento_prazo}` : ''}` : 'não faço este pedido'}.{b.resposta ? `\n${b.resposta}` : ''}
+                </div>
+              )}
+            </article>
+          ))}
+        </section>
+      )}
 
       {aba === 'envios' && (
         <section className="space-y-3">
@@ -71,7 +121,9 @@ function Page() {
               </div>
               <p className="text-xs text-muted-foreground">Para: {s.profissional?.nome ?? 'profissional'}{s.profissional?.nome_salao ? ` · ${s.profissional.nome_salao}` : ''}{s.profissional?.whatsapp ? ` · ${s.profissional.whatsapp}` : ''}</p>
               <details><summary className="cursor-pointer text-xs text-accent">Ver briefing</summary><div className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-background p-3 text-xs">{s.texto}</div></details>
-              {s.resposta && <div className="rounded border border-accent/40 bg-accent/5 p-3 text-xs whitespace-pre-wrap">Resposta do profissional: {s.resposta}</div>}
+              {s.status === 'orcado' && <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs">💰 <strong>Orçamento:</strong> {s.faz ? 'faz o pedido' : ''}{s.orcamento_valor ? ` · R$ ${s.orcamento_valor.toFixed(2)}` : ''}{s.orcamento_prazo ? ` · prazo: ${s.orcamento_prazo}` : ''}</div>}
+              {s.status === 'recusado' && <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs">Este profissional não faz este pedido — tente outro da região.</div>}
+              {s.resposta && <div className="rounded border border-accent/40 bg-accent/5 p-3 text-xs whitespace-pre-wrap">Mensagem do profissional: {s.resposta}</div>}
             </article>
           ))}
         </section>

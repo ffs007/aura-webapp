@@ -65,6 +65,9 @@ export type Database = {
           texto: string
           status: string
           resposta: string | null
+          faz: boolean | null
+          orcamento_valor: number | null
+          orcamento_prazo: string | null
           created_at: string
         }
         Insert: {
@@ -77,6 +80,9 @@ export type Database = {
           texto: string
           status?: string
           resposta?: string | null
+          faz?: boolean | null
+          orcamento_valor?: number | null
+          orcamento_prazo?: string | null
           created_at?: string
         }
         Update: {

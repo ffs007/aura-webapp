@@ -54,12 +54,58 @@ export const meusBriefings = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context: { supabase } }) => {
     const { data, error } = await supabase
-      .from('briefing_sends').select('id,titulo,texto,modulo,status,resposta,created_at,professional_id').order('created_at', { ascending: false }).limit(50);
+      .from('briefing_sends').select('id,titulo,texto,modulo,status,resposta,created_at,professional_id,faz,orcamento_valor,orcamento_prazo').order('created_at', { ascending: false }).limit(50);
     if (error) throw new Error(error.message);
     const ids = [...new Set((data ?? []).map((s) => s.professional_id))];
     const profs = ids.length ? await supabase.from('professionals').select('id,nome,nome_salao,whatsapp,instagram').in('id', ids) : { data: [] };
     const mapa = new Map(((profs.data ?? []) as { id: string; nome: string; nome_salao: string | null; whatsapp: string | null; instagram: string | null }[]).map((p) => [p.id, p]));
     return (data ?? []).map((s) => ({ ...s, profissional: mapa.get(s.professional_id) ?? null }));
+  });
+
+export type BriefingRecebido = {
+  id: string; titulo: string; texto: string; modulo: string | null;
+  created_at: string; status: string; faz: boolean | null;
+  orcamento_valor: number | null; orcamento_prazo: string | null; resposta: string | null;
+};
+
+/** Painel do profissional: briefings recebidos pelos perfis dele. */
+export const briefingsRecebidos = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context: { supabase, userId } }) => {
+    const { data: profs } = await supabase.from('professionals').select('id').eq('user_id', userId);
+    const ids = (profs ?? []).map((p: { id: string }) => p.id);
+    if (!ids.length) return [] as BriefingRecebido[];
+    const { data, error } = await supabase
+      .from('briefing_sends').select('id,titulo,texto,modulo,created_at,status,faz,orcamento_valor,orcamento_prazo,resposta')
+      .in('professional_id', ids).order('created_at', { ascending: false }).limit(100);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((s) => ({ ...s, orcamento_valor: s.orcamento_valor === null ? null : Number(s.orcamento_valor) })) as BriefingRecebido[];
+  });
+
+export const responderBriefing = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({
+    id: z.string().uuid(),
+    faz: z.boolean(),
+    valor: z.number().min(0).max(100000).optional(),
+    prazo: z.string().max(80).optional(),
+    resposta: z.string().max(2000).optional(),
+  }).parse(d))
+  .handler(async ({ data, context: { supabase, userId } }) => {
+    const { data: envio } = await supabase.from('briefing_sends').select('id,professional_id').eq('id', data.id).maybeSingle();
+    if (!envio) throw new Error('Briefing não encontrado.');
+    const { data: prof } = await supabase.from('professionals').select('id').eq('id', envio.professional_id).eq('user_id', userId).maybeSingle();
+    if (!prof) throw new Error('Este briefing não é seu.');
+    if (data.faz && (data.valor === undefined || data.valor <= 0)) throw new Error('Para orçar, informe o valor.');
+    const { error } = await supabase.from('briefing_sends').update({
+      faz: data.faz,
+      orcamento_valor: data.faz && data.valor !== undefined ? data.valor : null,
+      orcamento_prazo: data.faz && data.prazo ? data.prazo : null,
+      resposta: data.resposta ? data.resposta : null,
+      status: data.faz ? 'orcado' : 'recusado',
+    }).eq('id', data.id);
+    if (error) throw new Error('Não foi possível salvar a resposta.');
+    return { ok: true };
   });
 
 export const salvarProfissional = createServerFn({ method: 'POST' })
