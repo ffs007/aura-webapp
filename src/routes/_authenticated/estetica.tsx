@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useServerFn } from '@tanstack/react-start';
-import { PROCEDIMENTOS, analisarSimetria, briefingEstetico, type AnaliseSimetria } from '@/lib/estetica.functions';
+import { PROCEDIMENTOS, analisarSimetria, briefingEstetico, simularProcedimento, type AnaliseSimetria } from '@/lib/estetica.functions';
 import { EnviarBriefing } from '@/components/EnviarBriefing';
 
 export const Route = createFileRoute('/_authenticated/estetica')({
@@ -16,7 +16,10 @@ export const Route = createFileRoute('/_authenticated/estetica')({
 const DISCLAIMER = 'A Aura mede e informa — não diagnostica, não prescreve e não promete resultados. Toda decisão é sua, com um profissional habilitado.';
 
 function Page() {
-  const analisar = useServerFn(analisarSimetria), briefing = useServerFn(briefingEstetico);
+  const analisar = useServerFn(analisarSimetria), briefing = useServerFn(briefingEstetico), simular = useServerFn(simularProcedimento);
+  const [simImg, setSimImg] = useState<string | null>(null);
+  const [simulando, setSimulando] = useState(false);
+  const [reMedida, setReMedida] = useState<AnaliseSimetria | null>(null);
   const [permite, setPermite] = useState<boolean | null>(null);
   const [proc, setProc] = useState<string | null>(null);
   const [foto, setFoto] = useState<{ path: string; url: string } | null>(null);
@@ -63,11 +66,39 @@ function Page() {
     } catch { setErr('A medição falhou. Tente novamente.'); } finally { setMedindo(false); }
   }
 
+  async function simularNaFoto() {
+    if (!foto || !proc || !analise) return;
+    setSimulando(true); setErr(''); setSimImg(null); setReMedida(null);
+    try {
+      const s = await supabase.storage.from('user-photos').createSignedUrl(foto.path, 600);
+      const imageUrl = s.data?.signedUrl;
+      if (!imageUrl) return setErr('Não consegui autorizar o uso da foto.');
+      const r = await simular({ data: { imageUrl, procedimento: proc, regioes: analise.regioes } });
+      if (!r.ok || !r.image_url) { setErr(r.error ?? 'Não foi possível simular agora.'); return; }
+      setSimImg(r.image_url);
+      // Guarda a simulação no cofre e RE-MEDE para mostrar o antes/depois.
+      const blob = await (await fetch(r.image_url)).blob();
+      const destino = `${userId}/estetica-sim-${Date.now()}.png`;
+      const up = await supabase.storage.from('user-photos').upload(destino, blob, { contentType: 'image/jpeg' });
+      if (!up.error) {
+        const rs = await supabase.storage.from('user-photos').createSignedUrl(destino, 600);
+        if (rs.data?.signedUrl) {
+          const m = await analisar({ data: { imageUrl: rs.data.signedUrl, procedimento: proc } });
+          if (!m.error && m.analise) setReMedida(m.analise);
+        }
+      }
+      window.dispatchEvent(new Event('aura:quota'));
+    } catch { setErr('A simulação falhou. Tente novamente.'); } finally { setSimulando(false); }
+  }
+
   async function gerarBriefing() {
     if (!analise || !procObj) return;
     setGerandoBrief(true); setErr('');
     try {
-      const r = await briefing({ data: { procedimento: procObj.nome, regioes: analise.regioes, resumo: analise.resumo } });
+      const simulacao = reMedida
+        ? `Simulação ilustrativa aplicada sobre a foto. Medidas antes → depois: ${analise.regioes.map((a) => { const d = reMedida.regioes.find((x) => x.regiao === a.regiao); return d ? `${a.regiao} ${a.assimetria_pct.toFixed(0)}%→${d.assimetria_pct.toFixed(0)}%` : ''; }).filter(Boolean).join('; ')}.`
+        : undefined;
+      const r = await briefing({ data: { procedimento: procObj.nome, regioes: analise.regioes, resumo: analise.resumo, ...(simulacao ? { simulacao } : {}) } });
       if (r.error || !r.texto) { setErr(r.error ?? 'Não consegui montar o briefing.'); return; }
       setBriefTxt({ titulo: r.titulo ?? 'Briefing estético', texto: r.texto });
     } catch { setErr('Não consegui montar o briefing.'); } finally { setGerandoBrief(false); }
@@ -146,7 +177,37 @@ function Page() {
               ))}
               <p className="text-xs text-muted-foreground">{analise.resumo}</p>
               {analise.limitacoes && <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700">⚠️ {analise.limitacoes}</p>}
-              <Button size="sm" disabled={gerandoBrief} onClick={() => void gerarBriefing()}>{gerandoBrief ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}{gerandoBrief ? 'Montando briefing…' : 'Gerar briefing de avaliação'}</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" disabled={simulando} onClick={() => void simularNaFoto()}>{simulando ? <LoaderCircle className="size-4 animate-spin" /> : '🎬'}{simulando ? 'Simulando na sua foto…' : 'Simular procedimento na minha foto'}</Button>
+                <Button size="sm" disabled={gerandoBrief} onClick={() => void gerarBriefing()}>{gerandoBrief ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}{gerandoBrief ? 'Montando briefing…' : 'Gerar briefing de avaliação'}</Button>
+              </div>
+            </div>
+          )}
+
+          {simImg && foto && (
+            <div className="space-y-4 rounded-lg border bg-card p-5">
+              <p className="text-sm font-medium">Antes e depois (simulação ilustrativa)</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <figure><img src={foto.url} alt="Sua foto original" className="aspect-[3/4] w-full rounded-lg object-contain" /><figcaption className="mt-1 text-xs text-muted-foreground">Antes (medido)</figcaption></figure>
+                <figure><img src={simImg} alt="Simulação do procedimento" className={`aspect-[3/4] w-full rounded-lg object-contain ${simulando ? 'opacity-50' : ''}`} /><figcaption className="mt-1 text-xs text-muted-foreground">Depois (simulado por IA)</figcaption></figure>
+              </div>
+              {reMedida && (
+                <div className="space-y-1 text-sm">
+                  {analise?.regioes.map((a) => {
+                    const d = reMedida.regioes.find((x) => x.regiao === a.regiao);
+                    if (!d) return null;
+                    const delta = a.assimetria_pct - d.assimetria_pct;
+                    return (
+                      <div key={a.regiao} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="capitalize">{a.regiao}</span>
+                        <span className="tabular-nums">{a.assimetria_pct.toFixed(0)}% → <strong>{d.assimetria_pct.toFixed(0)}%</strong> {delta > 0.5 ? <span className="text-emerald-600">(−{delta.toFixed(0)} assimetria)</span> : delta < -0.5 ? <span className="text-amber-600">(+{(-delta).toFixed(0)} na re-leitura)</span> : <span className="text-muted-foreground">(estável)</span>}</span>
+                      </div>
+                    );
+                  })}
+                  <p className="pt-1 text-xs text-muted-foreground">Re-leitura da simulação: {reMedida.resumo}</p>
+                </div>
+              )}
+              <p className="rounded border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700">⚕️ Simulação gerada por IA sobre a sua foto — caráter ilustrativo, não é garantia de resultado. Avaliação presencial define o que é possível.</p>
             </div>
           )}
 
