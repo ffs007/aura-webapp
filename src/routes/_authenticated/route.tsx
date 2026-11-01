@@ -53,6 +53,7 @@ function Shell() {
               </Link>
             ))}
           </nav>
+          <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/estetica">✨ Estética</Link></Button>
           <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/modelo">👤 Modelo</Link></Button>
           <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/retrato">📸 Retrato</Link></Button>
           <Button size="sm" asChild variant="outline" className="whitespace-nowrap border-accent/50 text-accent"><Link to="/aura-pass">✦ Pass</Link></Button>

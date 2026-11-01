@@ -21,6 +21,7 @@ import { Route as AuthenticatedCompareRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedConsentRouteImport } from './routes/_authenticated/consent'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDnaRouteRouteImport } from './routes/_authenticated/dna/route'
+import { Route as AuthenticatedEsteticaRouteImport } from './routes/_authenticated/estetica'
 import { Route as AuthenticatedExportRouteImport } from './routes/_authenticated/export'
 import { Route as AuthenticatedGuiaRouteImport } from './routes/_authenticated/guia'
 import { Route as AuthenticatedMaquiagemRouteRouteImport } from './routes/_authenticated/maquiagem/route'
@@ -136,6 +137,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedDnaRouteRoute = AuthenticatedDnaRouteRouteImport.update({
   id: '/dna',
   path: '/dna',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEsteticaRoute = AuthenticatedEsteticaRouteImport.update({
+  id: '/estetica',
+  path: '/estetica',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedExportRoute = AuthenticatedExportRouteImport.update({
@@ -473,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof AuthenticatedCompareRoute
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/estetica': typeof AuthenticatedEsteticaRoute
   '/export': typeof AuthenticatedExportRoute
   '/guia': typeof AuthenticatedGuiaRoute
   '/modelo': typeof AuthenticatedModeloRoute
@@ -536,6 +543,7 @@ export interface FileRoutesByTo {
   '/compare': typeof AuthenticatedCompareRoute
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/estetica': typeof AuthenticatedEsteticaRoute
   '/export': typeof AuthenticatedExportRoute
   '/guia': typeof AuthenticatedGuiaRoute
   '/modelo': typeof AuthenticatedModeloRoute
@@ -606,6 +614,7 @@ export interface FileRoutesById {
   '/_authenticated/compare': typeof AuthenticatedCompareRoute
   '/_authenticated/consent': typeof AuthenticatedConsentRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/estetica': typeof AuthenticatedEsteticaRoute
   '/_authenticated/export': typeof AuthenticatedExportRoute
   '/_authenticated/guia': typeof AuthenticatedGuiaRoute
   '/_authenticated/modelo': typeof AuthenticatedModeloRoute
@@ -676,6 +685,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/consent'
     | '/dashboard'
+    | '/estetica'
     | '/export'
     | '/guia'
     | '/modelo'
@@ -739,6 +749,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/consent'
     | '/dashboard'
+    | '/estetica'
     | '/export'
     | '/guia'
     | '/modelo'
@@ -808,6 +819,7 @@ export interface FileRouteTypes {
     | '/_authenticated/compare'
     | '/_authenticated/consent'
     | '/_authenticated/dashboard'
+    | '/_authenticated/estetica'
     | '/_authenticated/export'
     | '/_authenticated/guia'
     | '/_authenticated/modelo'
@@ -953,6 +965,13 @@ declare module '@tanstack/react-router' {
       path: '/dna'
       fullPath: '/dna'
       preLoaderRoute: typeof AuthenticatedDnaRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/estetica': {
+      id: '/_authenticated/estetica'
+      path: '/estetica'
+      fullPath: '/estetica'
+      preLoaderRoute: typeof AuthenticatedEsteticaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/export': {
@@ -1485,6 +1504,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCompareRoute: typeof AuthenticatedCompareRoute
   AuthenticatedConsentRoute: typeof AuthenticatedConsentRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEsteticaRoute: typeof AuthenticatedEsteticaRoute
   AuthenticatedExportRoute: typeof AuthenticatedExportRoute
   AuthenticatedGuiaRoute: typeof AuthenticatedGuiaRoute
   AuthenticatedModeloRoute: typeof AuthenticatedModeloRoute
@@ -1518,6 +1538,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCompareRoute: AuthenticatedCompareRoute,
   AuthenticatedConsentRoute: AuthenticatedConsentRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEsteticaRoute: AuthenticatedEsteticaRoute,
   AuthenticatedExportRoute: AuthenticatedExportRoute,
   AuthenticatedGuiaRoute: AuthenticatedGuiaRoute,
   AuthenticatedModeloRoute: AuthenticatedModeloRoute,
