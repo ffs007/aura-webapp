@@ -22,9 +22,11 @@ import { Route as AuthenticatedConsentRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDnaRouteRouteImport } from './routes/_authenticated/dna/route'
 import { Route as AuthenticatedExportRouteImport } from './routes/_authenticated/export'
+import { Route as AuthenticatedGuiaRouteImport } from './routes/_authenticated/guia'
 import { Route as AuthenticatedMaquiagemRouteRouteImport } from './routes/_authenticated/maquiagem/route'
 import { Route as AuthenticatedModeloRouteImport } from './routes/_authenticated/modelo'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedProfissionaisRouteImport } from './routes/_authenticated/profissionais'
 import { Route as AuthenticatedRetratoRouteImport } from './routes/_authenticated/retrato'
 import { Route as AuthenticatedRoupasRouteRouteImport } from './routes/_authenticated/roupas/route'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -141,6 +143,11 @@ const AuthenticatedExportRoute = AuthenticatedExportRouteImport.update({
   path: '/export',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGuiaRoute = AuthenticatedGuiaRouteImport.update({
+  id: '/guia',
+  path: '/guia',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMaquiagemRouteRoute =
   AuthenticatedMaquiagemRouteRouteImport.update({
     id: '/maquiagem',
@@ -157,6 +164,12 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProfissionaisRoute =
+  AuthenticatedProfissionaisRouteImport.update({
+    id: '/profissionais',
+    path: '/profissionais',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRetratoRoute = AuthenticatedRetratoRouteImport.update({
   id: '/retrato',
   path: '/retrato',
@@ -461,8 +474,10 @@ export interface FileRoutesByFullPath {
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/export': typeof AuthenticatedExportRoute
+  '/guia': typeof AuthenticatedGuiaRoute
   '/modelo': typeof AuthenticatedModeloRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/retrato': typeof AuthenticatedRetratoRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
@@ -522,8 +537,10 @@ export interface FileRoutesByTo {
   '/consent': typeof AuthenticatedConsentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/export': typeof AuthenticatedExportRoute
+  '/guia': typeof AuthenticatedGuiaRoute
   '/modelo': typeof AuthenticatedModeloRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/profissionais': typeof AuthenticatedProfissionaisRoute
   '/retrato': typeof AuthenticatedRetratoRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
@@ -590,8 +607,10 @@ export interface FileRoutesById {
   '/_authenticated/consent': typeof AuthenticatedConsentRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/export': typeof AuthenticatedExportRoute
+  '/_authenticated/guia': typeof AuthenticatedGuiaRoute
   '/_authenticated/modelo': typeof AuthenticatedModeloRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/profissionais': typeof AuthenticatedProfissionaisRoute
   '/_authenticated/retrato': typeof AuthenticatedRetratoRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
@@ -658,8 +677,10 @@ export interface FileRouteTypes {
     | '/consent'
     | '/dashboard'
     | '/export'
+    | '/guia'
     | '/modelo'
     | '/onboarding'
+    | '/profissionais'
     | '/retrato'
     | '/settings'
     | '/studio'
@@ -719,8 +740,10 @@ export interface FileRouteTypes {
     | '/consent'
     | '/dashboard'
     | '/export'
+    | '/guia'
     | '/modelo'
     | '/onboarding'
+    | '/profissionais'
     | '/retrato'
     | '/settings'
     | '/studio'
@@ -786,8 +809,10 @@ export interface FileRouteTypes {
     | '/_authenticated/consent'
     | '/_authenticated/dashboard'
     | '/_authenticated/export'
+    | '/_authenticated/guia'
     | '/_authenticated/modelo'
     | '/_authenticated/onboarding'
+    | '/_authenticated/profissionais'
     | '/_authenticated/retrato'
     | '/_authenticated/settings'
     | '/_authenticated/studio'
@@ -937,6 +962,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/guia': {
+      id: '/_authenticated/guia'
+      path: '/guia'
+      fullPath: '/guia'
+      preLoaderRoute: typeof AuthenticatedGuiaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/maquiagem': {
       id: '/_authenticated/maquiagem'
       path: '/maquiagem'
@@ -956,6 +988,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/profissionais': {
+      id: '/_authenticated/profissionais'
+      path: '/profissionais'
+      fullPath: '/profissionais'
+      preLoaderRoute: typeof AuthenticatedProfissionaisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/retrato': {
@@ -1447,8 +1486,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConsentRoute: typeof AuthenticatedConsentRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedExportRoute: typeof AuthenticatedExportRoute
+  AuthenticatedGuiaRoute: typeof AuthenticatedGuiaRoute
   AuthenticatedModeloRoute: typeof AuthenticatedModeloRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedProfissionaisRoute: typeof AuthenticatedProfissionaisRoute
   AuthenticatedRetratoRoute: typeof AuthenticatedRetratoRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
@@ -1478,8 +1519,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConsentRoute: AuthenticatedConsentRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedExportRoute: AuthenticatedExportRoute,
+  AuthenticatedGuiaRoute: AuthenticatedGuiaRoute,
   AuthenticatedModeloRoute: AuthenticatedModeloRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedProfissionaisRoute: AuthenticatedProfissionaisRoute,
   AuthenticatedRetratoRoute: AuthenticatedRetratoRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,

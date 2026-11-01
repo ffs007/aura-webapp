@@ -32,6 +32,19 @@ function Dashboard() {
   if (q.isLoading) return <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>;
   if (q.error) return <p className="text-destructive">Não conseguimos carregar suas sugestões. Recarregue a página.</p>;
 
+  const guia = (
+    <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-accent/40 bg-accent/5 p-5">
+      <div>
+        <p className="text-sm font-medium">Primeira vez? Comece pelo guia — e crie seu 👤 Meu Modelo</p>
+        <p className="mt-1 text-xs text-muted-foreground">5 passos com exemplos. Com o modelo pronto, toda simulação sai com a sua cara.</p>
+      </div>
+      <div className="flex gap-2">
+        <Button asChild size="sm" variant="outline"><Link to="/guia">Abrir o guia</Link></Button>
+        <Button asChild size="sm"><Link to="/modelo">👤 Meu Modelo</Link></Button>
+      </div>
+    </div>
+  );
+
   const all = q.data ?? [];
   if (!all.length) return (
     <div className="mx-auto max-w-md py-20 text-center">
@@ -44,6 +57,7 @@ function Dashboard() {
   const list = all.filter((p) => (batch ? p.batch_id === batch : true)).filter((p) => filter === "all" || p.status === filter);
   return (
     <div>
+      {guia}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-5xl">{batch ? "Convites fresquinhos" : "Suas sugestões"}</h1>

@@ -23,7 +23,7 @@ function Page() {
   const [foto, setFoto] = useState<{ path: string; url: string } | null>(null);
   const [pedido, setPedido] = useState('');
   const [interpretando, setInterpretando] = useState(false);
-  const [ajustes, setAjustes] = useState<string[] | null>(null);
+  const [ajustes, setAjustes] = useState<{ alvo: string; mudanca: string }[] | null>(null);
   const [duvidas, setDuvidas] = useState<string[]>([]);
   const [editando, setEditando] = useState(false);
   const [resultado, setResultado] = useState<string | null>(null);
@@ -71,7 +71,7 @@ function Page() {
     } catch { setErr('Não consegui interpretar o pedido.'); } finally { setInterpretando(false); }
   }
 
-  async function rodarEdicao(lista: string[]): Promise<boolean> {
+  async function rodarEdicao(lista: { alvo: string; mudanca: string }[]): Promise<boolean> {
     if (!foto) return false;
     setEditando(true); setErr(''); setPendencia(null); setPaywall(false); setVeredito(null);
     try {
@@ -169,7 +169,7 @@ function Page() {
           {ajustes && (
             <section className="rounded-lg border border-accent/40 bg-accent/5 p-5" role="region" aria-label="Confirmação do que será editado">
               <p className="text-sm font-medium">Vou aplicar na sua foto — confirme</p>
-              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">{ajustes.map((a) => <li key={a}>{a}</li>)}</ul>
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">{ajustes.map((a) => <li key={a.alvo + a.mudanca}><strong className="capitalize">{a.alvo}:</strong> {a.mudanca}</li>)}</ul>
               {duvidas.length > 0 && <ul className="mt-3 space-y-1 text-xs text-amber-600">{duvidas.map((d) => <li key={d}>Pendência: {d}</li>)}</ul>}
               <p className="mt-3 text-xs text-muted-foreground">O resto fica idêntico: rosto, pose, fundo e luz.</p>
               <div className="mt-4 flex flex-wrap gap-2">

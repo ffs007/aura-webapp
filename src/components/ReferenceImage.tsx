@@ -8,21 +8,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { prepareReference, finishReference, interpretLookRequest, verifyReference } from "@/lib/references.functions";
+import { prepareReference, finishReference, interpretLookRequest, verifyReference, guiaPosGeracao } from "@/lib/references.functions";
 import { interpretTattooRequest } from "@/lib/tattoo.functions";
 import { resumoDoPedido, type TattooBrief } from "@/lib/tattoo-brief";
 import { AURA_PASS_PRECO } from "@/lib/stripe.functions";
 import { QuotaChip } from "@/components/QuotaChip";
+import { EnviarBriefing } from "@/components/EnviarBriefing";
 import { streamImage } from "@/lib/stream-image";
 
 type LookBrief = { kind: string; atributos: { rotulo: string; valor: string }[]; ajuste_usuario: string; duvidas: string[] };
 
 export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, look = false }: { packageId?: string; slot?: string; tattoo?: boolean; look?: boolean }) {
-  const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), qc = useQueryClient();
+  const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), guia = useServerFn(guiaPosGeracao), qc = useQueryClient();
   const [busy, setBusy] = useState(false), [preview, setPreview] = useState<string | null>(null), [final, setFinal] = useState(false), [open, setOpen] = useState(false), [agree, setAgree] = useState(false), [err, setErr] = useState("");
   const [brief, setBrief] = useState<TattooBrief | null>(null), [lookBrief, setLookBrief] = useState<LookBrief | null>(null), [interpretando, setInterpretando] = useState(false);
   const [pendencia, setPendencia] = useState<string[] | null>(null);
   const [paywall, setPaywall] = useState(false);
+  const [gostei, setGostei] = useState(false);
+  const [guiaTxt, setGuiaTxt] = useState<{ titulo: string; texto: string } | null>(null);
+  const [guiaTipo, setGuiaTipo] = useState("");
+  const [gerandoGuia, setGerandoGuia] = useState("");
+  async function pedirGuia(tipo: "casa" | "salao" | "busca") {
+    if (!packageId) return;
+    setGerandoGuia(tipo); setGuiaTxt(null); setGuiaTipo(tipo);
+    try {
+      const r = await guia({ data: { packageId, slot, tipo } });
+      if (r.error || !r.texto) { toast.error(r.error ?? "Não consegui montar o guia."); return; }
+      setGuiaTxt({ titulo: r.titulo ?? "Guia", texto: r.texto });
+    } catch { toast.error("Não consegui montar o guia."); } finally { setGerandoGuia(""); }
+  }
+  function baixarGuia() {
+    if (!guiaTxt) return;
+    const blob = new Blob([guiaTxt.texto], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `aura-id-${guiaTxt.titulo.toLowerCase().replace(/[^\w]+/g, "-").slice(0, 40)}.md`; a.click();
+    URL.revokeObjectURL(url);
+  }
   const [temModelo, setTemModelo] = useState(false);
   const [usarModelo, setUsarModelo] = useState(true);
   const pacoteKind = useRef("");
@@ -70,7 +92,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
   const verify = useServerFn(verifyReference);
   async function generate(briefConfirmado?: TattooBrief | LookBrief) {
     if (running.current) return;
-    running.current = true; setBusy(true); setErr(""); setPendencia(null); setPaywall(false);
+    running.current = true; setBusy(true); setErr(""); setPendencia(null); setPaywall(false); setGostei(false); setGuiaTxt(null);
     try {
       const r1 = await runGeneration(briefConfirmado);
       if (r1 === "reprovado" && !regen.current) {
@@ -188,6 +210,46 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
     {pendencia && !busy && <p role="status" className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700">Verificação automática — pendências após 2 tentativas: {pendencia.join(" · ")}</p>}
     {(err || q.data?.error) && <p role="alert" className="break-words text-xs text-destructive">{err || q.data?.error}</p>}
     <QuotaChip tasks={tattoo ? ["webapp.reference.render", "webapp.ink.render"] : ["webapp.reference.render"]} />
+    {image && !busy && packageId && slot !== "avatar" && (
+      <div className="rounded-lg border bg-card p-4" role="region" aria-label="E agora?">
+        {!gostei ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm font-medium">Gostou do resultado?</p>
+            <Button size="sm" variant="outline" onClick={() => setGostei(true)}>💚 Gostei — e agora?</Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">O que você quer fazer com esse visual?</p>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" disabled={!!gerandoGuia} onClick={() => void pedirGuia("casa")}>{gerandoGuia === "casa" ? <LoaderCircle className="size-4 animate-spin" /> : "🏠"} Como fazer em casa</Button>
+              <Button size="sm" variant="outline" disabled={!!gerandoGuia} onClick={() => void pedirGuia("salao")}>{gerandoGuia === "salao" ? <LoaderCircle className="size-4 animate-spin" /> : "💅"} Briefing para o salão</Button>
+              {look && <Button size="sm" variant="outline" disabled={!!gerandoGuia} onClick={() => void pedirGuia("busca")}>{gerandoGuia === "busca" ? <LoaderCircle className="size-4 animate-spin" /> : "🔍"} Buscar peça parecida</Button>}
+            </div>
+            {guiaTxt && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">{guiaTxt.titulo}</p>
+                <div className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md border bg-background p-3 text-xs leading-relaxed">{guiaTxt.texto}</div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => { void navigator.clipboard.writeText(guiaTxt.texto); toast.success("Copiado!"); }}>Copiar</Button>
+                  <Button size="sm" variant="secondary" onClick={baixarGuia}>Baixar .md</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setGuiaTxt(null); setGostei(false); }}>Fechar</Button>
+                </div>
+              </div>
+            )}
+            {guiaTxt && guiaTipo === "salao" && (
+              <EnviarBriefing
+                titulo={guiaTxt.titulo}
+                texto={guiaTxt.texto}
+                modulo={tattoo ? "tatuagem" : look ? "look" : "visual"}
+                profissaoFixa={tattoo ? "tatuadora" : undefined}
+                packageId={packageId}
+              />
+            )}
+            {!guiaTxt && !gerandoGuia && <Button size="sm" variant="ghost" onClick={() => setGostei(false)}>Fechar</Button>}
+          </div>
+        )}
+      </div>
+    )}
     {paywall && !busy && <div role="region" aria-label="Aura Pass" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
       <p className="text-sm font-medium">Suas gerações gratuitas acabaram ✨</p>
       <p className="mt-1 text-xs text-muted-foreground">O Aura Pass libera as gerações de imagem — Pix ou cartão, cancele quando quiser.</p>

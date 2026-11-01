@@ -14,6 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      professionals: {
+        Row: {
+          id: string
+          user_id: string
+          nome: string
+          profissao: string
+          nome_salao: string | null
+          cep: string
+          lat: number
+          lng: number
+          raio_atendimento_km: number
+          whatsapp: string | null
+          instagram: string | null
+          bio: string | null
+          ativo: boolean
+          verificado: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          nome: string
+          profissao: string
+          nome_salao?: string | null
+          cep: string
+          lat: number
+          lng: number
+          raio_atendimento_km?: number
+          whatsapp?: string | null
+          instagram?: string | null
+          bio?: string | null
+          ativo?: boolean
+          verificado?: boolean
+          created_at?: string
+        }
+        Update: {
+          [key: string]: unknown
+        }
+        Relationships: []
+      }
+      briefing_sends: {
+        Row: {
+          id: string
+          user_id: string
+          professional_id: string
+          package_id: string | null
+          modulo: string | null
+          titulo: string
+          texto: string
+          status: string
+          resposta: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          professional_id: string
+          package_id?: string | null
+          modulo?: string | null
+          titulo: string
+          texto: string
+          status?: string
+          resposta?: string | null
+          created_at?: string
+        }
+        Update: {
+          [key: string]: unknown
+        }
+        Relationships: []
+      }
       audit_events: {
         Row: {
           created_at: string

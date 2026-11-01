@@ -18,8 +18,6 @@ export const Route = createFileRoute("/_authenticated/studio")({
   component: Studio,
 });
 
-type Photo = { id: string; path: string; url?: string | undefined };
-
 function Studio() {
   const nav = useNavigate();
   const { user } = Route.useRouteContext();
@@ -30,46 +28,11 @@ function Studio() {
   const [extra, setExtra] = useState("");
   const [intensity, setIntensity] = useState(3);
   const [busy, setBusy] = useState(false);
-  const [photoConsent, setPhotoConsent] = useState(false);
-  const [photos, setPhotos] = useState<Photo[]>([]);
   const [presentation, setPresentation] = useState("");
-
-  async function loadPhotos() {
-    const { data } = await supabase.from("photos").select("id, path").order("created_at", { ascending: false });
-    const withUrls = await Promise.all((data ?? []).map(async (p) => {
-      const { data: s } = await supabase.storage.from("user-photos").createSignedUrl(p.path, 3600);
-      return { ...p, url: s?.signedUrl };
-    }));
-    setPhotos(withUrls);
-  }
 
   useEffect(() => {
     supabase.from("visual_profiles").select("data").eq("user_id", user.id).maybeSingle().then(({ data }) => setPresentation(String((data?.data as Record<string, unknown> | null)?.["presentation"] ?? "")));
-    supabase.from("consents").select("photo_processing").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      setPhotoConsent(!!data?.photo_processing);
-      if (data?.photo_processing) loadPhotos();
-    });
   }, [user.id]);
-
-  async function upload(files: FileList | null) {
-    if (!files) return;
-    for (const f of Array.from(files)) {
-      if (!f.type.startsWith("image/")) { toast.error(`${f.name} não é uma imagem`); continue; }
-      const path = `${user.id}/${crypto.randomUUID()}-${f.name.replace(/[^\w.]/g, "_")}`;
-      const { error } = await supabase.storage.from("user-photos").upload(path, f);
-      if (error) { toast.error(`Falha no envio: ${error.message}`); continue; }
-      await supabase.from("photos").insert({ user_id: user.id, path });
-      await logEvent("photo_uploaded");
-    }
-    loadPhotos();
-  }
-
-  async function removePhoto(p: Photo) {
-    await supabase.storage.from("user-photos").remove([p.path]);
-    await supabase.from("photos").delete().eq("id", p.id);
-    await logEvent("photo_deleted");
-    setPhotos(photos.filter((x) => x.id !== p.id));
-  }
 
   async function generate() {
     if (entry === "beard") { nav({ to: "/barba" }); return; }
@@ -119,25 +82,11 @@ function Studio() {
           <div className="space-y-2"><Label>Algo mais para hoje?</Label><Textarea value={extra} onChange={(e) => setExtra(e.target.value)} rows={3} placeholder="ex.: só tenho 10 minutos de manhã" /></div>
         </div>
         <div className="rounded-2xl border bg-card p-5">
-          <h3 className="text-2xl">Fotos e referências</h3>
-          {photoConsent ? (
-            <>
-              <p className="mt-1 text-sm text-muted-foreground">Opcional e privado. Só você vê; exclua quando quiser.</p>
-              <Input type="file" accept="image/*" multiple className="mt-4" onChange={(e) => upload(e.target.files)} />
-              {photos.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">Nenhuma referência ainda.</p> : (
-                <div className="mt-4 grid grid-cols-4 gap-2">
-                  {photos.map((p) => (
-                    <div key={p.id} className="group relative overflow-hidden rounded-lg">
-                      {p.url && <img src={p.url} alt="Sua referência" loading="lazy" className="aspect-square w-full object-cover" />}
-                      <button onClick={() => removePhoto(p)} className="absolute inset-x-0 bottom-0 bg-foreground/70 py-1 text-xs text-background opacity-0 group-hover:opacity-100">Excluir</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">O processamento de fotos está desligado. Você pode ativá-lo em <Link to="/settings" className="underline">Configurações</Link> — nunca é obrigatório.</p>
-          )}
+          <h3 className="text-2xl">Quer ver as sugestões em VOCÊ?</h3>
+          <p className="mt-1 text-sm text-muted-foreground">Crie seu <strong>Meu Modelo</strong> — duas imagens-base suas, privadas — e toda maquiagem, cabelo, roupa ou tatuagem sai com a sua cara, nunca com uma pessoa genérica.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Envie as fotos por lá mesmo (bem iluminadas, rosto e corpo): é o único lugar que aceita fotos suas, e elas ficam no seu cofre privado.</p>
+          <Button asChild size="sm" className="mt-4"><Link to="/modelo">👤 Criar meu modelo</Link></Button>
+          <p className="mt-3 text-xs text-muted-foreground">Primeira vez aqui? Veja o <Link to="/guia" className="underline">guia rápido</Link>.</p>
         </div>
       </div>
 
