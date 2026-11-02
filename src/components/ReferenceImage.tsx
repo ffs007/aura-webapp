@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ImagePlus, Download, Trash2, Expand, LoaderCircle } from "lucide-react";
+import { ImagePlus, Download, Trash2, Expand, LoaderCircle, Shirt } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,17 @@ import { resumoDoPedido, type TattooBrief } from "@/lib/tattoo-brief";
 import { AURA_PASS_PRECO } from "@/lib/stripe.functions";
 import { QuotaChip } from "@/components/QuotaChip";
 import { EnviarBriefing } from "@/components/EnviarBriefing";
-import { buscarPecas, type PecaCasada } from "@/lib/catalogo.functions";
+import { buscarPecas, provarPeca, type PecaCasada } from "@/lib/catalogo.functions";
 import { streamImage } from "@/lib/stream-image";
 
 type LookBrief = { kind: string; atributos: { rotulo: string; valor: string }[]; ajuste_usuario: string; duvidas: string[] };
 
 export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, look = false }: { packageId?: string; slot?: string; tattoo?: boolean; look?: boolean }) {
-  const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), guia = useServerFn(guiaPosGeracao), pecasFn = useServerFn(buscarPecas), qc = useQueryClient();
+  const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), guia = useServerFn(guiaPosGeracao), pecasFn = useServerFn(buscarPecas), provarFn = useServerFn(provarPeca), qc = useQueryClient();
   const [pecas, setPecas] = useState<PecaCasada[] | null>(null);
   const [buscandoPecas, setBuscandoPecas] = useState(false);
+  const [provando, setProvando] = useState("");
+  const [provas, setProvas] = useState<Record<string, string>>({});
   async function verPecas() {
     setBuscandoPecas(true); setPecas(null);
     try {
@@ -56,6 +58,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
     URL.revokeObjectURL(url);
   }
   const [temModelo, setTemModelo] = useState(false);
+  const [temCorpo, setTemCorpo] = useState(false);
   const [usarModelo, setUsarModelo] = useState(true);
   const pacoteKind = useRef("");
   useEffect(() => {
@@ -66,10 +69,28 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       const { data: arqs } = await supabase.storage.from("user-photos").list(u.user.id, { search: "modelo-" });
       const nomes = new Set((arqs ?? []).map((a) => a.name));
       setTemModelo(nomes.has("modelo-rosto.png") || nomes.has("modelo-corpo.png"));
+      setTemCorpo(nomes.has("modelo-corpo.png"));
       const { data: p } = await supabase.from("packages").select("kind").eq("id", packageId).maybeSingle();
       pacoteKind.current = String(p?.kind ?? "");
     })();
   }, [packageId, tattoo, look]);
+  /** Fatia B3 — provador: base preferida é o modelo pessoal (corpo); senão o visual gerado. */
+  async function provar(p: PecaCasada) {
+    if (provando) return;
+    const { data: u } = await supabase.auth.getUser();
+    const base = temCorpo && u.user ? `${u.user.id}/modelo-corpo.png` : q.data?.path;
+    if (!base) { toast.error("Gere o visual primeiro — ou crie seu 👤 Meu Modelo."); return; }
+    setProvando(p.id); setPaywall(false);
+    try {
+      const r = await provarFn({ data: { peca_id: p.id, foto_path: base } });
+      setProvas((xs) => ({ ...xs, [p.id]: r.image_url }));
+      window.dispatchEvent(new Event("aura:quota"));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Não foi possível provar agora.";
+      setPaywall(/gratuitas|Aura Pass/i.test(msg));
+      toast.error(msg);
+    } finally { setProvando(""); }
+  }
   const regen = useRef(false);
   const running = useRef(false);
   const refsPaths = useRef<string[]>([]);
@@ -219,7 +240,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
     </div>
     {pendencia && !busy && <p role="status" className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700">Verificação automática — pendências após 2 tentativas: {pendencia.join(" · ")}</p>}
     {(err || q.data?.error) && <p role="alert" className="break-words text-xs text-destructive">{err || q.data?.error}</p>}
-    <QuotaChip tasks={tattoo ? ["webapp.reference.render", "webapp.ink.render"] : ["webapp.reference.render"]} />
+    <QuotaChip tasks={tattoo ? ["webapp.reference.render", "webapp.ink.render"] : look ? ["webapp.reference.render", "webapp.tryon.render"] : ["webapp.reference.render"]} />
     {image && !busy && packageId && slot !== "avatar" && (
       <div className="rounded-lg border bg-card p-4" role="region" aria-label="E agora?">
         {!gostei ? (
@@ -265,17 +286,30 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
                 {pecas && pecas.length === 0 && <p className="text-xs text-muted-foreground">Nada parecido no catálogo ainda — novas lojas em breve.</p>}
                 <div className="grid gap-3 sm:grid-cols-2">
                   {pecas?.map((p) => (
-                    <a key={p.id} href={p.url + (p.url.includes('?') ? '&' : '?') + 'utm_source=aura-id'} target="_blank" rel="noopener noreferrer" className="flex gap-3 rounded-md border bg-background p-3 transition hover:shadow-soft">
-                      {p.imagem_url
-                        ? <img src={p.imagem_url} alt={p.titulo} className="size-16 shrink-0 rounded object-cover" />
-                        : <div className="grid size-16 shrink-0 place-items-center rounded bg-secondary text-xl">👗</div>}
-                      <div className="min-w-0">
-                        {p.patrocinado && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-700">Patrocinado</span>}
-                        <p className="truncate text-sm font-medium">{p.titulo}</p>
-                        <p className="text-xs text-muted-foreground">{p.loja} · R$ {p.preco.toFixed(2).replace('.', ',')}</p>
-                        <p className="text-xs text-accent">Ver na loja ↗</p>
-                      </div>
-                    </a>
+                    <div key={p.id} className="space-y-2 rounded-md border bg-background p-3">
+                      <a href={p.url + (p.url.includes('?') ? '&' : '?') + 'utm_source=aura-id'} target="_blank" rel="noopener noreferrer" className="flex gap-3 transition hover:opacity-90">
+                        {p.imagem_url
+                          ? <img src={p.imagem_url} alt={p.titulo} className="size-16 shrink-0 rounded object-cover" />
+                          : <div className="grid size-16 shrink-0 place-items-center rounded bg-secondary text-xl">👗</div>}
+                        <div className="min-w-0">
+                          {p.patrocinado && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-700">Patrocinado</span>}
+                          <p className="truncate text-sm font-medium">{p.titulo}</p>
+                          <p className="text-xs text-muted-foreground">{p.loja} · R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                          <p className="text-xs text-accent">Ver na loja ↗</p>
+                        </div>
+                      </a>
+                      <Button size="sm" variant="outline" className="w-full" disabled={!!provando} onClick={() => void provar(p)}>
+                        {provando === p.id ? <LoaderCircle className="size-4 animate-spin" /> : <Shirt className="size-4" />}
+                        {provando === p.id ? "Provando em você…" : "Provar em mim"}
+                      </Button>
+                      {provas[p.id] && (
+                        <div className="space-y-2 rounded-md border border-accent/40 bg-accent/5 p-2" role="region" aria-label={`Você vestindo ${p.titulo}`}>
+                          <img src={provas[p.id]} alt={`Você vestindo ${p.titulo}`} className="aspect-[2/3] w-full rounded object-contain" />
+                          <p className="text-xs text-muted-foreground">Você com {p.titulo} · simulação Aura</p>
+                          <Button asChild size="sm" className="w-full"><a href={p.url + (p.url.includes('?') ? '&' : '?') + 'utm_source=aura-id'} target="_blank" rel="noopener noreferrer">Ver na loja · R$ {p.preco.toFixed(2).replace('.', ',')} ↗</a></Button>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
                 {pecas && <p className="text-[10px] text-muted-foreground">Itens do catálogo parceiro; loja parceira define preço e disponibilidade. Lojas em fase demo.</p>}

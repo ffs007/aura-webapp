@@ -118,8 +118,8 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
 3. **B2** (catálogo parceiro) — monetiza com lojas (PREMISSA 2) ✅
 4. **A3** (IA do profissional) — receita recorrente de crédito ✅
 5. CRUD admin do catálogo (painel /admin no webapp — sem Table Editor) ✅ 2026-11-01
-6. B3 (gerar o look com a peça real do catálogo) e micropágina do profissional
-7. B4/C3/C4 completam a experiência
+6. **B3 (provador virtual)** — a cliente vestindo a peça REAL do catálogo (IDM-VTON pessoa+peça, reserva Kontext) ✅ 2026-11-01
+7. Micropágina do profissional (/p/{slug}); B4/C3/C4 completam a experiência
 8. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA
    enquanto produz conteúdo para os primeiros clientes que já esperam) — só então
    Stripe live + Plano Profissional R$ 49,90 + créditos.
