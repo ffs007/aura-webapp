@@ -4,6 +4,7 @@ import { LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { supabase } from '@/integrations/supabase/client';
+import { createCheckout, proStatus, AURA_PRO_PRECO } from '@/lib/stripe.functions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +30,20 @@ function Page() {
   const designsFn = useServerFn(meusDesigns), publicarFn = useServerFn(publicarDesign), excluirDesignFn = useServerFn(excluirDesign);
   const [sugestaoTexto, setSugestaoTexto] = useState('');
   const [sugerindo, setSugerindo] = useState('');
+  const checkoutPro = useServerFn(createCheckout), statusPro = useServerFn(proStatus);
+  const [proAtivo, setProAtivo] = useState(false);
+  const [proPaywall, setProPaywall] = useState(false);
+  const [assinando, setAssinando] = useState(false);
+  useEffect(() => { statusPro().then((r) => setProAtivo(r.active)).catch(() => {}); }, []);
+
+  /** 💰 Plano Profissional: assinatura mensal c/ sugestões de IA ilimitadas. */
+  async function assinarPro() {
+    setAssinando(true);
+    try {
+      const url = await checkoutPro({ data: { app_url: window.location.origin, plano: 'pro' } });
+      window.location.href = url;
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível iniciar.'); setAssinando(false); }
+  }
   const [aba, setAba] = useState<'envios' | 'recebidos' | 'cadastro' | 'vitrine'>('envios');
   const [envios, setEnvios] = useState<Envio[] | null>(null);
   const [recebidos, setRecebidos] = useState<BriefingRecebido[] | null>(null);
@@ -123,13 +138,17 @@ function Page() {
   }
 
   async function sugerirComIAUI(b: BriefingRecebido) {
-    setSugerindo(b.id);
+    setSugerindo(b.id); setProPaywall(false);
     try {
       const r = await sugerir({ data: { briefing_id: b.id, texto: sugestaoTexto } });
       toast.success(r.ok ? 'Sugestão aplicada e enviada à cliente! ✨' : '');
       setSugestaoTexto('');
       setRecebidos(await recebidosFn());
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'A IA não conseguiu aplicar agora.'); } finally { setSugerindo(''); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'A IA não conseguiu aplicar agora.';
+      setProPaywall(/plano profissional|cr[eé]ditos/i.test(msg));
+      toast.error(msg);
+    } finally { setSugerindo(''); }
   }
 
   async function cadastrar() {
@@ -156,6 +175,24 @@ function Page() {
         <h1 className="mt-2 text-5xl">Profissionais</h1>
         <p className="mt-3 text-muted-foreground">Os briefings que você gerou podem ir direto para profissionais perto de você — e quem é da área pode se cadastrar para recebê-los.</p>
       </div>
+
+      {proAtivo ? (
+        <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700">💎 Plano Profissional ativo — sugestões de IA ilimitadas. Gerencie em <Link to="/aura-pass" className="underline">Aura Pass</Link>.</p>
+      ) : proPaywall ? (
+        <div role="region" aria-label="Plano Profissional" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+          <p className="text-sm font-medium">Suas 3 sugestões grátis acabaram 💎</p>
+          <p className="mt-1 text-xs text-muted-foreground">O Plano Profissional libera sugestões de IA ilimitadas sobre a foto da cliente — {AURA_PRO_PRECO}, cancele quando quiser.</p>
+          <Button size="sm" className="mt-3" disabled={assinando} onClick={() => void assinarPro()}>{assinando ? <LoaderCircle className="size-4 animate-spin" /> : null}Assinar {AURA_PRO_PRECO}</Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/5 p-4">
+          <div>
+            <p className="text-sm font-medium">💎 Plano Profissional — {AURA_PRO_PRECO}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Sugestões de IA ilimitadas sobre a foto da cliente. As 3 primeiras de cada conta são grátis pra testar.</p>
+          </div>
+          <Button size="sm" disabled={assinando} onClick={() => void assinarPro()}>{assinando ? <LoaderCircle className="size-4 animate-spin" /> : null}Assinar</Button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant={aba === 'envios' ? 'default' : 'outline'} onClick={() => setAba('envios')}>Meus envios</Button>
