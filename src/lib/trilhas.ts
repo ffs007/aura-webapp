@@ -1,10 +1,10 @@
 /**
  * Trilhas do Aura ID (webapp) — mesma lógica do app mobile (D1, 2026-10-22):
- * composição 100% feminina, 3 trilhas de 2-3 módulos, usuário escolhe 1-3 e a
- * navegação esconde o resto. Barba permanece acessível por URL, mas fora do nav.
+ * 3 trilhas femininas de 2-3 módulos + a trilha masculina BARBEARIA (E1,
+ * 2026-11-02). Usuário escolhe até 3 e a navegação esconde o resto.
  */
 
-export type TrilhaKey = "visual" | "cabelo" | "estilo";
+export type TrilhaKey = "visual" | "cabelo" | "estilo" | "barbearia";
 
 export interface TrilhaDef {
   key: TrilhaKey;
@@ -44,9 +44,19 @@ export const TRILHAS: Record<TrilhaKey, TrilhaDef> = {
       ["/jornada", "Jornada"],
     ],
   },
+  barbearia: {
+    key: "barbearia",
+    label: "Barbearia",
+    icon: "💈",
+    tagline: "Barba e corte masculino, no seu ritmo",
+    links: [
+      ["/barba", "Barba"],
+      ["/cabelo", "Cabelo"],
+    ],
+  },
 };
 
-export const TODAS_TRILHAS: TrilhaKey[] = ["visual", "cabelo", "estilo"];
+export const TODAS_TRILHAS: TrilhaKey[] = ["visual", "cabelo", "estilo", "barbearia"];
 
 const STORAGE_KEY = "aura.trilhas";
 

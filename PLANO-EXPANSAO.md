@@ -162,6 +162,12 @@ briefing como PRODUTO pronto para levar à pele.
   + cabelo masculino; barbeiro já está na rede (A1) e já sugere com IA (A3).
 - **E2 — Briefing barba/cabelo → barbeiro** com foto do cliente (mesma engrenagem A1+A3).
 - **E3 — "Provar barba/corte"** com modelo pessoal masculino (mesma task do Retrato).
+- ✅ 2026-11-02 — tudo completo: trilha **💈 Barbearia** (Barba + Cabelo) no
+  picker/nav (barba.tsx saiu do esconderijo); **🪞 Provar na sua cara** na
+  página de Barba (6 estilos prontos — raspada à bigode — via `webapp.retrato.edit`
+  com alvo "barba" ONLY sobre o modelo-rosto; 2 grátis/Pass, E2E 200 ao vivo);
+  **💌 Levar ao barbeiro** — briefing determinístico do próprio perfil (zero IA)
+  + EnviarBriefing profissaoFixa barbeiro com a foto do modelo anexada (30 dias).
 
 ## TRANSVERSAL — CANAL DE FEEDBACK ("crítica é ouro" — pedido do Felipe)
 ✅ 2026-11-01 — botão 💬 **Opinião** em TODAS as páginas (públicas incluso,

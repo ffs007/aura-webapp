@@ -25,7 +25,7 @@ export function TrilhaPicker({ aberto, onFechar, iniciais }: { aberto: boolean; 
       >
         <h2 className="text-3xl">Por onde você quer começar?</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Escolha 1, 2 ou as 3 trilhas. Só o que você escolher aparece no menu — nada de confusão.
+          Escolha até 3 trilhas. Só o que você escolher aparece no menu — nada de confusão.
           Dá para mudar depois no botão “Trilhas”.
         </p>
         <div className="mt-6 space-y-3">
