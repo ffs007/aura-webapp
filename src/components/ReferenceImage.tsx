@@ -14,12 +14,22 @@ import { resumoDoPedido, type TattooBrief } from "@/lib/tattoo-brief";
 import { AURA_PASS_PRECO } from "@/lib/stripe.functions";
 import { QuotaChip } from "@/components/QuotaChip";
 import { EnviarBriefing } from "@/components/EnviarBriefing";
+import { buscarPecas, type PecaCasada } from "@/lib/catalogo.functions";
 import { streamImage } from "@/lib/stream-image";
 
 type LookBrief = { kind: string; atributos: { rotulo: string; valor: string }[]; ajuste_usuario: string; duvidas: string[] };
 
 export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, look = false }: { packageId?: string; slot?: string; tattoo?: boolean; look?: boolean }) {
-  const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), guia = useServerFn(guiaPosGeracao), qc = useQueryClient();
+  const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), guia = useServerFn(guiaPosGeracao), pecasFn = useServerFn(buscarPecas), qc = useQueryClient();
+  const [pecas, setPecas] = useState<PecaCasada[] | null>(null);
+  const [buscandoPecas, setBuscandoPecas] = useState(false);
+  async function verPecas() {
+    setBuscandoPecas(true); setPecas(null);
+    try {
+      const atributos = lookBrief ? lookBrief.atributos.map((a) => `${a.rotulo}: ${a.valor}`).join("; ") : "";
+      setPecas(await pecasFn({ data: { texto: atributos || "look outfit" } }));
+    } catch { toast.error("Não consegui buscar o catálogo agora."); } finally { setBuscandoPecas(false); }
+  }
   const [busy, setBusy] = useState(false), [preview, setPreview] = useState<string | null>(null), [final, setFinal] = useState(false), [open, setOpen] = useState(false), [agree, setAgree] = useState(false), [err, setErr] = useState("");
   const [brief, setBrief] = useState<TattooBrief | null>(null), [lookBrief, setLookBrief] = useState<LookBrief | null>(null), [interpretando, setInterpretando] = useState(false);
   const [pendencia, setPendencia] = useState<string[] | null>(null);
@@ -244,6 +254,31 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
                 profissaoFixa={tattoo ? "tatuadora" : undefined}
                 packageId={packageId}
               />
+            )}
+            {look && pacoteKind.current === "outfit" && (
+              <div className="space-y-3 rounded-lg border bg-card p-4" role="region" aria-label="Peças parecidas">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm font-medium">🛍️ Peças parecidas no catálogo parceiro</p>
+                  <Button size="sm" variant="outline" disabled={buscandoPecas} onClick={() => void verPecas()}>{buscandoPecas ? <LoaderCircle className="size-4 animate-spin" /> : null}{buscandoPecas ? "Buscando…" : "Ver peças"}</Button>
+                </div>
+                {pecas && pecas.length === 0 && <p className="text-xs text-muted-foreground">Nada parecido no catálogo ainda — novas lojas em breve.</p>}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {pecas?.map((p) => (
+                    <a key={p.id} href={p.url + (p.url.includes('?') ? '&' : '?') + 'utm_source=aura-id'} target="_blank" rel="noopener noreferrer" className="flex gap-3 rounded-md border bg-background p-3 transition hover:shadow-soft">
+                      {p.imagem_url
+                        ? <img src={p.imagem_url} alt={p.titulo} className="size-16 shrink-0 rounded object-cover" />
+                        : <div className="grid size-16 shrink-0 place-items-center rounded bg-secondary text-xl">👗</div>}
+                      <div className="min-w-0">
+                        {p.patrocinado && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-700">Patrocinado</span>}
+                        <p className="truncate text-sm font-medium">{p.titulo}</p>
+                        <p className="text-xs text-muted-foreground">{p.loja} · R$ {p.preco.toFixed(2).replace('.', ',')}</p>
+                        <p className="text-xs text-accent">Ver na loja ↗</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+                {pecas && <p className="text-[10px] text-muted-foreground">Itens do catálogo parceiro; loja parceira define preço e disponibilidade. Lojas em fase demo.</p>}
+              </div>
             )}
             {!guiaTxt && !gerandoGuia && <Button size="sm" variant="ghost" onClick={() => setGostei(false)}>Fechar</Button>}
           </div>

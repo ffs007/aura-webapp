@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      partner_stores: {
+        Row: { id: string; nome: string; site_url: string | null; prioridade: number; ativo: boolean; created_at: string }
+        Insert: { id?: string; nome: string; site_url?: string | null; prioridade?: number; ativo?: boolean; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: []
+      }
+      products: {
+        Row: { id: string; loja_id: string; titulo: string; descricao: string | null; categoria: string; cor: string | null; preco: number; url: string; imagem_url: string | null; tags: string[]; prioridade: number; ativo: boolean; created_at: string }
+        Insert: { id?: string; loja_id: string; titulo: string; descricao?: string | null; categoria: string; cor?: string | null; preco: number; url: string; imagem_url?: string | null; tags?: string[]; prioridade?: number; ativo?: boolean; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: [{ foreignKeyName: string; columns: ['loja_id']; isOneToOne: false; referencedRelation: 'partner_stores'; referencedColumns: ['id'] }]
+      }
       professionals: {
         Row: {
           id: string
