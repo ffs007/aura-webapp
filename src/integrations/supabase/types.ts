@@ -48,6 +48,7 @@ export type Database = {
           bio: string | null
           ativo: boolean
           verificado: boolean
+          slug: string | null
           created_at: string
         }
         Insert: {
@@ -65,6 +66,7 @@ export type Database = {
           bio?: string | null
           ativo?: boolean
           verificado?: boolean
+          slug?: string | null
           created_at?: string
         }
         Update: {

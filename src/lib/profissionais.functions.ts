@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getRequest } from '@tanstack/react-start/server';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 
 /**
@@ -158,6 +160,10 @@ export const responderBriefing = createServerFn({ method: 'POST' })
     return { ok: true };
   });
 
+/** Slug público da micropágina /p/{slug} — a-z0-9 e hífen, sem acentos. */
+const gerarSlug = (nome: string) =>
+  nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+
 export const salvarProfissional = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .validator((d) => z.object({
@@ -180,5 +186,35 @@ export const salvarProfissional = createServerFn({ method: 'POST' })
       bio: data.bio ?? null,
     }, { onConflict: 'user_id' });
     if (error) throw new Error(error.message);
-    return { ok: true };
+    // Micropágina: garante slug único (duplicidade recebe sufixo -2, -3…).
+    const { data: row } = await supabase.from('professionals').select('id,slug').eq('user_id', userId).maybeSingle();
+    let slug = row?.slug ?? null;
+    if (row && !slug) {
+      const base = gerarSlug(data.nome) || 'profissional';
+      for (let i = 0; i < 6 && !slug; i++) {
+        const tentativa = i === 0 ? base : `${base}-${i + 1}`;
+        const { error: errSlug } = await supabase.from('professionals').update({ slug: tentativa }).eq('id', row.id);
+        if (!errSlug) slug = tentativa;
+        else if (!/duplicate|unique/i.test(errSlug.message)) throw new Error('Não foi possível salvar o perfil.');
+      }
+    }
+    return { ok: true, slug };
+  });
+
+export type PerfilProfissional = {
+  nome: string; profissao: string; nome_salao: string | null;
+  whatsapp: string | null; instagram: string | null; bio: string | null; verificado: boolean; slug: string;
+};
+
+/** Micropágina pública /p/{slug} — SEM login (RLS expõe apenas profissionais ativos). */
+export const perfilProfissional = createServerFn({ method: 'POST' })
+  .validator((d) => z.object({ slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/) }).parse(d))
+  .handler(async ({ data }) => {
+    const url = process.env['SUPABASE_URL'], chave = process.env['SUPABASE_PUBLISHABLE_KEY'];
+    if (!url || !chave) throw new Error('Configuração indisponível agora.');
+    const anon = createClient<Database>(url, chave, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: p } = await anon.from('professionals')
+      .select('nome,profissao,nome_salao,whatsapp,instagram,bio,verificado,slug')
+      .eq('slug', data.slug).eq('ativo', true).maybeSingle();
+    return (p ?? null) as PerfilProfissional | null;
   });

@@ -34,6 +34,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedTatuagemRouteRouteImport } from './routes/_authenticated/tatuagem/route'
 import { Route as ApiReferenceImageRouteImport } from './routes/api/reference-image'
+import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedCabeloIndexRouteImport } from './routes/_authenticated/cabelo/index'
 import { Route as AuthenticatedCabeloAlertasRouteImport } from './routes/_authenticated/cabelo/alertas'
 import { Route as AuthenticatedCabeloGerarRouteImport } from './routes/_authenticated/cabelo/gerar'
@@ -206,6 +207,11 @@ const AuthenticatedTatuagemRouteRoute =
 const ApiReferenceImageRoute = ApiReferenceImageRouteImport.update({
   id: '/api/reference-image',
   path: '/api/reference-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PSlugRoute = PSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedCabeloIndexRoute =
@@ -489,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
+  '/p/$slug': typeof PSlugRoute
   '/cabelo/alertas': typeof AuthenticatedCabeloAlertasRoute
   '/cabelo/gerar': typeof AuthenticatedCabeloGerarRoute
   '/cabelo/perfil': typeof AuthenticatedCabeloPerfilRoute
@@ -553,6 +560,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
+  '/p/$slug': typeof PSlugRoute
   '/cabelo/alertas': typeof AuthenticatedCabeloAlertasRoute
   '/cabelo/gerar': typeof AuthenticatedCabeloGerarRoute
   '/cabelo/perfil': typeof AuthenticatedCabeloPerfilRoute
@@ -624,6 +632,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
+  '/p/$slug': typeof PSlugRoute
   '/_authenticated/cabelo/alertas': typeof AuthenticatedCabeloAlertasRoute
   '/_authenticated/cabelo/gerar': typeof AuthenticatedCabeloGerarRoute
   '/_authenticated/cabelo/perfil': typeof AuthenticatedCabeloPerfilRoute
@@ -695,6 +704,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/studio'
     | '/api/reference-image'
+    | '/p/$slug'
     | '/cabelo/alertas'
     | '/cabelo/gerar'
     | '/cabelo/perfil'
@@ -759,6 +769,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/studio'
     | '/api/reference-image'
+    | '/p/$slug'
     | '/cabelo/alertas'
     | '/cabelo/gerar'
     | '/cabelo/perfil'
@@ -829,6 +840,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/studio'
     | '/api/reference-image'
+    | '/p/$slug'
     | '/_authenticated/cabelo/alertas'
     | '/_authenticated/cabelo/gerar'
     | '/_authenticated/cabelo/perfil'
@@ -879,6 +891,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiReferenceImageRoute: typeof ApiReferenceImageRoute
+  PSlugRoute: typeof PSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1056,6 +1069,13 @@ declare module '@tanstack/react-router' {
       path: '/api/reference-image'
       fullPath: '/api/reference-image'
       preLoaderRoute: typeof ApiReferenceImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$slug': {
+      id: '/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/p/$slug'
+      preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/cabelo/': {
@@ -1566,6 +1586,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiReferenceImageRoute: ApiReferenceImageRoute,
+  PSlugRoute: PSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -30,6 +30,7 @@ function Page() {
   const [respondendo, setRespondendo] = useState("");
   const [respostaForm, setRespostaForm] = useState<{ valor: string; prazo: string; obs: string }>({ valor: '', prazo: '', obs: '' });
   const [salvando, setSalvando] = useState(false);
+  const [meuLink, setMeuLink] = useState("");
   const [form, setForm] = useState({ nome: '', profissao: 'maquiadora', nome_salao: '', cep: '', whatsapp: '', instagram: '', bio: '', raio: 25 });
   const [err, setErr] = useState('');
 
@@ -59,17 +60,18 @@ function Page() {
   }
 
   async function cadastrar() {
-    setErr(''); setSalvando(true);
+    setErr(""); setSalvando(true);
     try {
-      const cep = form.cep.replace(/\D/g, '');
-      if (cep.length !== 8) return setErr('CEP: 8 números.');
+      const cep = form.cep.replace(/\D/g, "");
+      if (cep.length !== 8) return setErr("CEP: 8 números.");
       const geo = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`);
       const geoJson = (await geo.json()) as { location?: { coordinates?: { latitude?: number; longitude?: number } } };
       const lat = geoJson.location?.coordinates?.latitude, lng = geoJson.location?.coordinates?.longitude;
-      if (typeof lat !== 'number' || typeof lng !== 'number') return setErr('Não achamos as coordenadas desse CEP.');
-      await salvar({ data: { nome: form.nome, profissao: form.profissao as never, nome_salao: form.nome_salao || undefined, cep, lat, lng, raio_atendimento_km: form.raio, whatsapp: form.whatsapp || undefined, instagram: form.instagram || undefined, bio: form.bio || undefined } });
-      toast.success('Perfil de profissional salvo! Você já aparece nas buscas da sua região.');
-    } catch (e) { setErr(e instanceof Error ? e.message : 'Não foi possível salvar.'); } finally { setSalvando(false); }
+      if (typeof lat !== "number" || typeof lng !== "number") return setErr("Não achamos as coordenadas desse CEP.");
+      const r = await salvar({ data: { nome: form.nome, profissao: form.profissao as never, nome_salao: form.nome_salao || undefined, cep, lat, lng, raio_atendimento_km: form.raio, whatsapp: form.whatsapp || undefined, instagram: form.instagram || undefined, bio: form.bio || undefined } });
+      if (r.slug) setMeuLink(`${window.location.origin}/p/${r.slug}`);
+      toast.success("Perfil de profissional salvo! Você já aparece nas buscas da sua região.");
+    } catch (e) { setErr(e instanceof Error ? e.message : "Não foi possível salvar."); } finally { setSalvando(false); }
   }
 
   const STATUS: Record<string, string> = { enviado: '📤 Enviado', respondido: '💬 Respondido', orcado: '💰 Orçado', recusado: '✖ Recusado' };
@@ -187,6 +189,16 @@ function Page() {
           <label className="block text-sm">Bio (opcional)<Textarea aria-label="Bio" className="mt-1" rows={3} maxLength={600} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></label>
           {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
           <Button disabled={salvando || form.nome.trim().length < 2} onClick={() => void cadastrar()}>{salvando ? <LoaderCircle className="size-4 animate-spin" /> : null}Salvar meu perfil</Button>
+          {meuLink && (
+            <div className="space-y-2 rounded-lg border border-accent/40 bg-accent/5 p-3" role="region" aria-label="Seu link público">
+              <p className="text-xs font-medium">🔗 Seu link público — coloque na bio do Instagram:</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <code className="min-w-0 flex-1 truncate rounded bg-background px-2 py-1 text-xs">{meuLink}</code>
+                <Button size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(meuLink); toast.success("Link copiado!"); }}>Copiar</Button>
+              </div>
+              <a href={meuLink} target="_blank" rel="noopener noreferrer" className="block text-xs text-accent underline">Ver minha página ↗</a>
+            </div>
+          )}
         </section>
       )}
     </div>
