@@ -120,8 +120,9 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
 5. CRUD admin do catálogo (painel /admin no webapp — sem Table Editor) ✅ 2026-11-01
 6. **B3 (provador virtual)** — a cliente vestindo a peça REAL do catálogo (IDM-VTON pessoa+peça, reserva Kontext) ✅ 2026-11-01
 7. **Micropágina do profissional (/p/{slug})** — link público para divulgar no Instagram, CTA de briefing ✅ 2026-11-01
-8. B4 (descoberta automática de catálogo), C3/C4 completam a experiência
-9. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA
+8. **B4 v1 (importador CSV em massa)** — planilha Google Shopping/simples vira catálogo em 1 clique ✅ 2026-11-01 (APIs de afiliado ficam para quando houver contas de afiliado)
+9. C3/C4 completam a experiência
+10. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA
    enquanto produz conteúdo para os primeiros clientes que já esperam) — só então
    Stripe live + Plano Profissional R$ 49,90 + créditos.
 

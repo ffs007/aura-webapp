@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { LoaderCircle, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { LoaderCircle, Pencil, Plus, Star, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  listarCatalogoAdmin, salvarLoja, excluirLoja, salvarProduto, excluirProduto,
+  listarCatalogoAdmin, salvarLoja, excluirLoja, salvarProduto, excluirProduto, importarCatalogo,
   type LojaAdmin, type ProdutoAdmin,
 } from '@/lib/admin.functions';
 
@@ -23,13 +23,29 @@ const FORM_PECA_VAZIO = {
 export function ParceirosManager() {
   const listar = useServerFn(listarCatalogoAdmin);
   const salvarLojaFn = useServerFn(salvarLoja), excluirLojaFn = useServerFn(excluirLoja);
-  const salvarPecaFn = useServerFn(salvarProduto), excluirPecaFn = useServerFn(excluirProduto);
+  const salvarPecaFn = useServerFn(salvarProduto), excluirPecaFn = useServerFn(excluirProduto), importarFn = useServerFn(importarCatalogo);
   const [lojas, setLojas] = useState<LojaAdmin[] | null>(null);
   const [formLoja, setFormLoja] = useState({ id: undefined as string | undefined, nome: '', site_url: '', ativo: true });
   const [formPeca, setFormPeca] = useState(FORM_PECA_VAZIO);
   const [salvandoL, setSalvandoL] = useState(false);
   const [salvandoP, setSalvandoP] = useState(false);
   const [ocupado, setOcupado] = useState('');
+  const [csv, setCsv] = useState('');
+  const [lojaCsv, setLojaCsv] = useState('');
+  const [lojaNovaCsv, setLojaNovaCsv] = useState('');
+  const [importando, setImportando] = useState(false);
+  const [resImport, setResImport] = useState('');
+
+  async function importarCsvUI() {
+    setImportando(true); setResImport('');
+    try {
+      const r = await importarFn({ data: { csv, ...(lojaCsv ? { loja_id: lojaCsv } : { loja_nova: lojaNovaCsv.trim() }) } });
+      setResImport(`✅ ${r.criadas} peça(s) importada(s) · ${r.puladas} pulada(s) por já existirem${r.erros.length ? ` · ⚠️ ${r.erros.join(' · ')}` : ''}`);
+      toast.success(`${r.criadas} peças no catálogo!`);
+      setCsv('');
+      await carregar();
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível importar.'); } finally { setImportando(false); }
+  }
 
   async function carregar() {
     try { setLojas(await listar()); } catch (e) { setLojas([]); toast.error(e instanceof Error ? e.message : 'Não foi possível carregar o catálogo.'); }
@@ -97,6 +113,36 @@ export function ParceirosManager() {
         <h2 className="text-3xl">🛍️ Catálogo parceiro (Guarda-Roupa Real)</h2>
         <p className="mt-1 text-sm text-muted-foreground">Lojas e peças que aparecem nas sugestões de roupa das clientes. Peça ⭐ <strong>patrocinada</strong> vem primeiro — é o espaço que a loja paga para ocupar.</p>
       </div>
+
+      <details className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-4">
+        <summary className="cursor-pointer text-sm font-medium">📥 Importar catálogo em massa (CSV da loja)</summary>
+        <p className="text-xs text-muted-foreground">A planilha que a loja já usa no Google Shopping entra direto (colunas title, link, price, image link…). Planilha simples também: título, categoria, cor, preço, url, imagem_url, tags. Peças com o mesmo link são puladas — pode importar de novo sem medo.</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <select aria-label="Loja do CSV" className="rounded-md border bg-background p-2 text-sm" value={lojaCsv} onChange={(e) => setLojaCsv(e.target.value)}>
+            <option value="">Nova loja…</option>
+            {lojas?.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}
+          </select>
+          {!lojaCsv && <Input aria-label="Nome da nova loja" placeholder="Nome da nova loja" value={lojaNovaCsv} onChange={(e) => setLojaNovaCsv(e.target.value)} />}
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Upload className="size-4" />
+          Escolher arquivo .csv do computador
+          <input type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={(e) => {
+            const arq = e.target.files?.[0];
+            if (!arq) return;
+            const fr = new FileReader();
+            fr.onload = () => setCsv(String(fr.result ?? ''));
+            fr.readAsText(arq);
+          }} />
+        </label>
+        <Textarea aria-label="CSV colado" rows={5} className="font-mono text-xs" placeholder={'Ou cole aqui:\ntitle,link,price,image link\nVestido midi preto,https://loja.com.br/vestido,189.90,https://loja.com.br/vestido.jpg'} value={csv} onChange={(e) => setCsv(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" disabled={importando || csv.trim().length < 10 || (!lojaCsv && lojaNovaCsv.trim().length < 2)} onClick={() => void importarCsvUI()}>
+            {importando ? <LoaderCircle className="size-4 animate-spin" /> : null}Importar
+          </Button>
+          {resImport && <p className="text-xs text-muted-foreground">{resImport}</p>}
+        </div>
+      </details>
 
       <div className="space-y-3 rounded-xl border bg-card p-4">
         <p className="text-sm font-medium">{formLoja.id ? '✏️ Editando loja' : '➕ Nova loja'}</p>

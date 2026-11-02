@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
+import { interpretarCsvCatalogo } from '@/lib/catalogo-csv';
 
 /**
  * Catálogo Parceiro — CRUD Admin (pós-Onda 1 do PLANO-EXPANSAO).
@@ -121,4 +122,44 @@ export const excluirProduto = createServerFn({ method: 'POST' })
     const { error } = await supabase.from('products').delete().eq('id', data.id);
     if (error) throw new Error(traduzErro(error, 'Não foi possível excluir a peça.'));
     return { ok: true };
+  });
+
+/**
+ * Fatia B4 (v1) — IMPORTAÇÃO EM MASSA: CSV da loja (padrão Google Shopping ou
+ * planilha simples) vira peças do catálogo. Pula URLs que já existem na loja.
+ */
+export const importarCatalogo = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({
+    loja_id: z.string().uuid().optional(),
+    loja_nova: z.string().min(2).max(120).optional(),
+    csv: z.string().min(10).max(2_000_000),
+  }).parse(d))
+  .handler(async ({ data, context: { supabase, userId } }) => {
+    await exigirAdmin(supabase, userId);
+    if (!data.loja_id && !data.loja_nova) throw new Error('Escolha uma loja existente ou digite o nome da nova.');
+    const r = interpretarCsvCatalogo(data.csv);
+    if (!r.pecas.length) throw new Error(r.erros[0] ?? 'Nenhuma peça válida encontrada no CSV.');
+    let loja_id = data.loja_id ?? null;
+    if (!loja_id) {
+      const { data: nova, error } = await supabase.from('partner_stores').insert({ nome: data.loja_nova! }).select('id').single();
+      if (error) throw new Error(traduzErro(error, 'Não foi possível criar a loja.'));
+      loja_id = (nova as { id: string }).id;
+    }
+    const { data: existentes, error: errExist } = await supabase.from('products').select('url').eq('loja_id', loja_id).limit(2000);
+    if (errExist) throw new Error(traduzErro(errExist, 'Não foi possível conferir as peças existentes.'));
+    const jaTem = new Set((existentes ?? []).map((p: { url: string }) => p.url));
+    const novas = r.pecas.filter((p) => !jaTem.has(p.url));
+    let criadas = 0;
+    const falhas: string[] = [];
+    for (let i = 0; i < novas.length; i += 100) {
+      const lote = novas.slice(i, i + 100).map((p) => ({
+        loja_id: loja_id as string, titulo: p.titulo, descricao: p.descricao, categoria: p.categoria,
+        cor: p.cor, preco: p.preco, url: p.url, imagem_url: p.imagem_url, tags: p.tags, ativo: p.ativo,
+      }));
+      const { error } = await supabase.from('products').insert(lote);
+      if (error) falhas.push(traduzErro(error, 'Um lote de peças falhou.'));
+      else criadas += lote.length;
+    }
+    return { criadas, puladas: r.pecas.length - novas.length, linhas: r.total, erros: [...r.erros, ...falhas].slice(0, 5) };
   });
