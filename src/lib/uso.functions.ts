@@ -14,6 +14,7 @@ export const LIMITES: Record<string, number> = {
   'webapp.retrato.edit': 2,
   'webapp.modelo.render': 2,
   'webapp.tryon.render': 2,
+  'webapp.ink.tryon': 2,
 };
 
 const AI_RUNS_URL = 'https://oyfqecigqrceijoxggqw.supabase.co/rest/v1/ai_runs';

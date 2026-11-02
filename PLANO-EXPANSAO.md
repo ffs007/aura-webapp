@@ -134,6 +134,14 @@ briefing como PRODUTO pronto para levar à pele.
 - Usuária vê um design → IA aplica NO CORPO DELA (modelo pessoal preferido;
   task nova `webapp.ink.tryon`) → "Quero essa" vira briefing com a imagem do
   teste direto para o estúdio. É o provador do B3, versão tatuagem.
+- ✅ 2026-11-02: gateway `webapp.ink.tryon` (engine kontext-multi —
+  `fal-ai/flux-pro/kontext/multi`: image_urls=[corpo, design]; design público
+  chega via `params.design_imagem` validado como URL externa https). Webapp:
+  `copiarDesign` (base = modelo-corpo; prompt preserva identidade/pose/fundo) +
+  vitrine com botão "Copiar pra mim", simulação inline, "Quero essa" → upload
+  privado da simulação + briefing direto ao estúdio com foto de 30 dias.
+  2 testes grátis, depois Pass. E2E: 200 com kontext/multi + imagem 271KB +
+  localhost rejeitado.
 
 ### Fatia D3 — Versão para impressão (stencil)
 - Do design/teste, botão "Gerar versão para impressão": PNG sem fundo, traço

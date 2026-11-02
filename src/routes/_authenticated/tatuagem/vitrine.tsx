@@ -1,20 +1,42 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
-import { listarVitrine, ESTILOS_VITRINE, type DesignVitrine } from '@/lib/vitrine.functions';
+import { Button } from '@/components/ui/button';
+import { QuotaChip } from '@/components/QuotaChip';
+import { supabase } from '@/integrations/supabase/client';
+import { AURA_PASS_PRECO } from '@/lib/stripe.functions';
+import { enviarBriefing } from '@/lib/profissionais.functions';
+import { listarVitrine, copiarDesign, ESTILOS_VITRINE, type DesignVitrine, type CopiadoDesign } from '@/lib/vitrine.functions';
 
 export const Route = createFileRoute('/_authenticated/tatuagem/vitrine')({
   head: () => ({ meta: [{ title: 'Vitrine de tatuagens · Aura ID' }] }),
   component: Page,
 });
 
-/** Fatia D1 — vitrine dos estúdios: designs publicados para se inspirar (e em breve provar no corpo — D2). */
+/** Fatia D1+D2 — vitrine dos estúdios + "Copiar pra mim": a IA aplica o design no corpo da cliente. */
 function Page() {
-  const listar = useServerFn(listarVitrine);
+  const listar = useServerFn(listarVitrine), copiar = useServerFn(copiarDesign), enviar = useServerFn(enviarBriefing);
   const [estilo, setEstilo] = useState('');
   const [designs, setDesigns] = useState<DesignVitrine[] | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [temCorpo, setTemCorpo] = useState(false);
+  const [uid, setUid] = useState('');
+  const [provando, setProvando] = useState('');
+  const [enviando, setEnviando] = useState('');
+  const [provas, setProvas] = useState<Record<string, CopiadoDesign>>({});
+  const [paywall, setPaywall] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      setUid(u.user.id);
+      const { data: arqs } = await supabase.storage.from('user-photos').list(u.user.id, { search: 'modelo-' });
+      setTemCorpo((arqs ?? []).some((a) => a.name === 'modelo-corpo.png'));
+    })();
+  }, []);
 
   async function carregar(e: string) {
     setEstilo(e); setCarregando(true);
@@ -23,12 +45,55 @@ function Page() {
 
   useEffect(() => { void carregar(''); }, []);
 
+  async function copiarPraMim(d: DesignVitrine) {
+    if (provando) return;
+    if (!temCorpo || !uid) {
+      toast.error('Crie seu 👤 Meu Modelo (foto do corpo) primeiro — é rápido e a tatuagem sai em você.');
+      return;
+    }
+    setProvando(d.id); setPaywall(false);
+    try {
+      const r = await copiar({ data: { design_id: d.id, foto_path: `${uid}/modelo-corpo.png` } });
+      setProvas((xs) => ({ ...xs, [d.id]: r }));
+      window.dispatchEvent(new Event('aura:quota'));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Não foi possível aplicar agora.';
+      setPaywall(/gratuitas|Aura Pass/i.test(msg));
+      toast.error(msg);
+    } finally { setProvando(''); }
+  }
+
+  /** "Quero essa": guarda a simulação no cofre privado e vira briefing pro estúdio. */
+  async function queroEssa(d: DesignVitrine) {
+    const prova = provas[d.id];
+    if (!prova || enviando) return;
+    setEnviando(d.id);
+    try {
+      const blob = await (await fetch(prova.image_url)).blob();
+      const caminho = `${uid}/vitrine-${d.id}.png`;
+      const up = await supabase.storage.from('user-photos').upload(caminho, blob, { contentType: 'image/png' });
+      if (up.error) throw new Error(up.error.message);
+      const s = await supabase.storage.from('user-photos').createSignedUrl(caminho, 60 * 60 * 24 * 30);
+      const fotoUrl = s.data?.signedUrl;
+      const p = prova.design;
+      const texto = `A cliente viu o design "${p.titulo}"${p.estilo ? ` (estilo ${p.estilo})` : ''} na vitrine e quer essa tatuagem.\n\n- Design: ${p.titulo}\n- Local desejado: ${p.local_sugerido ?? 'a combinar com o estúdio'}\n- Tamanho de referência: ${p.tamanho ?? 'a definir'}\n- Imagem anexa: simulação da tatuagem NO CORPO da cliente (gerada por IA — usar como referência da intenção, não como molde final).\n\nPerguntas da cliente: tamanho ideal para o local? o design precisa de adaptação? dá em uma sessão?`;
+      await enviar({ data: { professional_id: p.professional_id, modulo: 'tatuagem', titulo: `Quero esse design: ${p.titulo}`, texto, ...(fotoUrl ? { foto_url: fotoUrl } : {}) } });
+      toast.success(`Briefing enviado para ${p.estudio}! A resposta aparece em Profissionais → Meus envios.`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível enviar o briefing.'); } finally { setEnviando(''); }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <span className="text-sm text-accent">Aura ID · Tatuagem</span>
         <h1 className="mt-2 text-4xl">🖤 Vitrine dos estúdios</h1>
-        <p className="mt-2 text-muted-foreground">Designs publicados pelas tatuadoras da rede. Achou o seu? Em breve você testa no próprio corpo antes de marcar (provador em produção) — e o briefing vai direto pro estúdio.</p>
+        <p className="mt-2 text-muted-foreground">Designs publicados pelas tatuadoras da rede. Achou o seu? <strong>Copie pra você</strong>: a IA aplica no seu corpo (use seu 👤 Meu Modelo) — e com um clique o briefing vai direto pro estúdio.</p>
+        <div className="mt-2"><QuotaChip tasks={['webapp.ink.tryon']} /></div>
+        {!temCorpo && (
+          <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700">
+            Para copiar um design pro seu corpo, crie seu <Link to="/modelo" className="underline">👤 Meu Modelo</Link> primeiro (foto do corpo).
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -43,26 +108,50 @@ function Page() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {designs?.map((d) => (
-          <article key={d.id} className="overflow-hidden rounded-xl border bg-card">
+          <article key={d.id} className="flex flex-col overflow-hidden rounded-xl border bg-card">
             <img src={d.imagem_url} alt={d.titulo} className="aspect-square w-full bg-secondary object-contain" loading="lazy" />
-            <div className="space-y-1 p-4">
-              {d.destaque > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-700">Patrocinado</span>}
-              <h2 className="text-lg font-medium">{d.titulo}</h2>
-              <p className="text-xs text-muted-foreground">
-                {d.estilo ? `${d.estilo} · ` : ''}{d.local_sugerido ?? 'local a combinar'}{d.tamanho ? ` · ${d.tamanho}` : ''}
-              </p>
-              {d.estudio && (
-                <p className="text-xs text-accent">
-                  {d.slug
-                    ? <Link to="/p/$slug" params={{ slug: d.slug }} className="underline">{d.estudio}{d.verificado ? ' ✓' : ''}</Link>
-                    : <>{d.estudio}{d.verificado ? ' ✓' : ''}</>}
+            <div className="flex flex-1 flex-col gap-2 p-4">
+              <div>
+                {d.destaque > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-700">Patrocinado</span>}
+                <h2 className="text-lg font-medium">{d.titulo}</h2>
+                <p className="text-xs text-muted-foreground">
+                  {d.estilo ? `${d.estilo} · ` : ''}{d.local_sugerido ?? 'local a combinar'}{d.tamanho ? ` · ${d.tamanho}` : ''}
                 </p>
+                {d.estudio && (
+                  <p className="text-xs text-accent">
+                    {d.slug
+                      ? <Link to="/p/$slug" params={{ slug: d.slug }} className="underline">{d.estudio}{d.verificado ? ' ✓' : ''}</Link>
+                      : <>{d.estudio}{d.verificado ? ' ✓' : ''}</>}
+                  </p>
+                )}
+                {d.descricao && <p className="mt-1 text-xs text-muted-foreground">{d.descricao}</p>}
+              </div>
+              <Button size="sm" className="w-full" disabled={!!provando} onClick={() => void copiarPraMim(d)}>
+                {provando === d.id ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                {provando === d.id ? 'Aplicando em você…' : 'Copiar pra mim'}
+              </Button>
+              {provas[d.id] && (
+                <div className="space-y-2 rounded-md border border-accent/40 bg-accent/5 p-2" role="region" aria-label={`Simulação de ${d.titulo}`}>
+                  <img src={provas[d.id]?.image_url} alt={`Você com ${d.titulo}`} className="aspect-[2/3] w-full rounded object-contain" />
+                  <p className="text-xs text-muted-foreground">Simulação no seu corpo · gerada por IA</p>
+                  <Button size="sm" className="w-full" disabled={!!enviando} onClick={() => void queroEssa(d)}>
+                    {enviando === d.id ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    Quero essa — enviar pro estúdio
+                  </Button>
+                </div>
               )}
-              {d.descricao && <p className="text-xs text-muted-foreground">{d.descricao}</p>}
             </div>
           </article>
         ))}
       </div>
+
+      {paywall && (
+        <div role="region" aria-label="Aura Pass" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+          <p className="text-sm font-medium">Seus testes grátis acabaram ✨</p>
+          <p className="mt-1 text-xs text-muted-foreground">O Aura Pass libera as provas de tatuagem — Pix ou cartão, cancele quando quiser.</p>
+          <Button asChild size="sm" className="mt-3"><Link to="/aura-pass">Desbloquear com Aura Pass · {AURA_PASS_PRECO}</Link></Button>
+        </div>
+      )}
     </div>
   );
 }
