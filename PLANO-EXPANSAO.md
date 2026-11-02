@@ -112,6 +112,46 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
 
 ---
 
+## PROJETO D — TATUAGEM PRO (estúdios dentro da rede — pedido do Felipe, 2026-11-01)
+
+**Contexto:** a rede já aceita tatuadora desde a A1 (briefing com foto → orçamento),
+e o tatuador já pode sugerir com IA na foto da cliente desde a A3 (`webapp.pro.adjust`
+vale para tatuagem, cabelo E barba). O que faltava: o estúdio como VITRINE e o
+briefing como PRODUTO pronto para levar à pele.
+
+### Fatia D1 — Vitrine do estúdio (tatuagens modelo)
+- Tabela `tattoo_designs`: estúdio publica designs (imagem, título, estilo,
+  tamanho/local sugerido); campo `destaque` = patrocínio (Premissa 2).
+- Vitrine filtrável por estilo no webapp; CRUD no painel do profissional.
+
+### Fatia D2 — "Copiar pra mim" (provador de tatuagem)
+- Usuária vê um design → IA aplica NO CORPO DELA (modelo pessoal preferido;
+  task nova `webapp.ink.tryon`) → "Quero essa" vira briefing com a imagem do
+  teste direto para o estúdio. É o provador do B3, versão tatuagem.
+
+### Fatia D3 — Versão para impressão (stencil)
+- Do design/teste, botão "Gerar versão para impressão": PNG sem fundo, traço
+  preto de alto contraste, pronto para impressão térmica + download.
+  (Honesto: PNG de alta definição — vetorização real fica para uma fase futura.)
+
+### Fatia D4 — Estúdio responde com IA
+- JÁ PRONTO via A3 — funciona para tatuadora, barbeiro e cabeleireira. ✅
+
+## PROJETO E — MASCULINO / BARBEARIA (pedido do Felipe, 2026-11-01)
+
+- **E1 — Trilha masculina no webapp:** barba (rota já existe, hoje fora do nav)
+  + cabelo masculino; barbeiro já está na rede (A1) e já sugere com IA (A3).
+- **E2 — Briefing barba/cabelo → barbeiro** com foto do cliente (mesma engrenagem A1+A3).
+- **E3 — "Provar barba/corte"** com modelo pessoal masculino (mesma task do Retrato).
+
+## TRANSVERSAL — CANAL DE FEEDBACK ("crítica é ouro" — pedido do Felipe)
+✅ 2026-11-01 — botão 💬 **Opinião** em TODAS as páginas (públicas incluso,
+anônimo permitido), tabela `feedback_aura`, leitura no painel /admin.
+Regra permanente registrada na memória do ZCode: **todo projeto do Felipe
+ganha canal de feedback desde a primeira entrega.**
+
+---
+
 ## ORDEM SUGERIDA (valor mais rápido primeiro)
 1. **A1+A2** (rede com match e orçamento) — usa o briefing que já existe ✅
 2. **C1+C2** (simetria+simulação) — diferenciais de produto; vira case ✅
@@ -121,8 +161,10 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
 6. **B3 (provador virtual)** — a cliente vestindo a peça REAL do catálogo (IDM-VTON pessoa+peça, reserva Kontext) ✅ 2026-11-01
 7. **Micropágina do profissional (/p/{slug})** — link público para divulgar no Instagram, CTA de briefing ✅ 2026-11-01
 8. **B4 v1 (importador CSV em massa)** — planilha Google Shopping/simples vira catálogo em 1 clique ✅ 2026-11-01 (APIs de afiliado ficam para quando houver contas de afiliado)
-9. C3/C4 completam a experiência
-10. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA
+9. C3-resto: anexar foto padronizada ao briefing de estética (pequeno) e C4 (jornada pós-procedimento)
+10. **D1 → D2 → D3** (tatuagem redonda: vitrine do estúdio → copiar pra mim → stencil)
+11. **E1** (trilha masculina/barbearia) → E2/E3
+12. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA
    enquanto produz conteúdo para os primeiros clientes que já esperam) — só então
    Stripe live + Plano Profissional R$ 49,90 + créditos.
 

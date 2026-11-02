@@ -32,6 +32,12 @@ export type Database = {
         Update: { [key: string]: unknown }
         Relationships: []
       }
+      feedback_aura: {
+        Row: { id: string; tipo: string; texto: string; contato: string | null; rota: string | null; user_id: string | null; created_at: string }
+        Insert: { id?: string; tipo: string; texto: string; contato?: string | null; rota?: string | null; user_id?: string | null; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: []
+      },
       professionals: {
         Row: {
           id: string

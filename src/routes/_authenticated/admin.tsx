@@ -10,6 +10,7 @@ import { adminStats } from "@/lib/aura.functions";
 import { fmtDateTime } from "@/lib/aura";
 import { CatalogManager } from "@/components/CatalogManager";
 import { ParceirosManager } from "@/components/ParceirosManager";
+import { FeedbackAdmin } from "@/components/FeedbackAdmin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }, { title: "Admin — Aura ID" }, { name: "description", content: "Uso, auditoria de consentimento e segurança de conteúdo." }, { property: "og:title", content: "Admin — Aura ID" }, { property: "og:description", content: "Uso, auditoria de consentimento e segurança de conteúdo." }] }),
@@ -59,6 +60,7 @@ function Admin() {
       <section><h2 className="text-3xl">Diretrizes de linguagem da Jornada</h2><ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground"><li>Encorajar, nunca cobrar progresso.</li><li>“Não funcionou” é aprendizado.</li><li>Relatórios enfatizam aprendizado, nunca comparação.</li><li>Notas emocionais nunca são exportadas nem compartilhadas; admins não veem fotos, notas ou reflexões.</li></ul></section>
       <CatalogManager />
       <ParceirosManager />
+      <FeedbackAdmin />
       <section className="space-y-3"><h2 className="text-3xl">Segurança em tatuagens</h2><p className="text-sm text-muted-foreground">Aviso profissional exibido nos projetos e utilizado na geração. Não há acesso a fotos corporais, intenções privadas nem diário.</p><Textarea aria-label="Aviso de segurança de tatuagens" value={tattooWarning} onChange={e => setTattooWarning(e.target.value)} /><Button disabled={!tattooWarning.trim()} onClick={async () => { const { error } = await supabase.from("safety_config").update({ tattoo_disclaimer: tattooWarning.trim(), updated_at: new Date().toISOString() }).eq("id", 1); if (error) { toast.error("Não foi possível salvar."); return; } qc.invalidateQueries(); toast.success("Aviso salvo."); }}>Salvar aviso</Button></section>
       <section><h2 className="text-3xl">Segurança de conteúdo</h2>
         <p className="text-sm text-muted-foreground">Palavras que a IA deve evitar (separadas por vírgula).</p>
