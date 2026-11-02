@@ -26,6 +26,12 @@ export type Database = {
         Update: { [key: string]: unknown }
         Relationships: [{ foreignKeyName: string; columns: ['loja_id']; isOneToOne: false; referencedRelation: 'partner_stores'; referencedColumns: ['id'] }]
       }
+      briefing_suggestions: {
+        Row: { id: string; briefing_id: string; professional_user_id: string; texto: string; image_url: string; created_at: string }
+        Insert: { id?: string; briefing_id: string; professional_user_id: string; texto: string; image_url: string; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: []
+      }
       professionals: {
         Row: {
           id: string
@@ -78,6 +84,7 @@ export type Database = {
           status: string
           resposta: string | null
           faz: boolean | null
+          foto_url: string | null
           orcamento_valor: number | null
           orcamento_prazo: string | null
           created_at: string
@@ -93,6 +100,7 @@ export type Database = {
           status?: string
           resposta?: string | null
           faz?: boolean | null
+          foto_url?: string | null
           orcamento_valor?: number | null
           orcamento_prazo?: string | null
           created_at?: string

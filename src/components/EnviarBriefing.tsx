@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { LoaderCircle, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ const PROFISSOES: [string, string][] = [
 ];
 
 /** Busca profissionais por CEP + raio e envia o briefing gerado. Geocodização via BrasilAPI no navegador. */
-export function EnviarBriefing({ titulo, texto, modulo, profissaoFixa, packageId }: { titulo: string; texto: string; modulo: string; profissaoFixa?: string | undefined; packageId?: string | undefined }) {
+export function EnviarBriefing({ titulo, texto, modulo, profissaoFixa, packageId, fotoPath }: { titulo: string; texto: string; modulo: string; profissaoFixa?: string | undefined; packageId?: string | undefined; fotoPath?: string | undefined }) {
   const listar = useServerFn(listarProfissionais), enviar = useServerFn(enviarBriefing);
   const [cep, setCep] = useState("");
   const [raio, setRaio] = useState(25);
@@ -43,7 +44,12 @@ export function EnviarBriefing({ titulo, texto, modulo, profissaoFixa, packageId
   async function enviarPara(p: Profissional) {
     setEnviando(p.id);
     try {
-      await enviar({ data: { professional_id: p.id, packageId, modulo, titulo, texto } });
+      let foto_url: string | undefined;
+      if (fotoPath) {
+        const s = await supabase.storage.from("user-photos").createSignedUrl(fotoPath, 60 * 60 * 24 * 30);
+        foto_url = s.data?.signedUrl;
+      }
+      await enviar({ data: { professional_id: p.id, packageId, modulo, titulo, texto, ...(foto_url ? { foto_url } : {}) } });
       setEnviados((xs) => [...xs, p.id]);
       toast.success(`Briefing enviado para ${p.nome}! A resposta aparece em Profissionais → Meus envios.`);
     } catch (e) { toast.error(e instanceof Error ? e.message : "Não foi possível enviar."); } finally { setEnviando(""); }

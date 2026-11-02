@@ -6,7 +6,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { meusBriefings, salvarProfissional, briefingsRecebidos, responderBriefing, type BriefingRecebido } from '@/lib/profissionais.functions';
+import { meusBriefings, salvarProfissional, briefingsRecebidos, responderBriefing, sugerirComIA, type BriefingRecebido } from '@/lib/profissionais.functions';
 
 export const Route = createFileRoute('/_authenticated/profissionais')({
   head: () => ({ meta: [{ title: 'Profissionais · Aura ID' }] }),
@@ -18,10 +18,12 @@ const PROFISSOES: [string, string][] = [
   ['esteticista', 'Esteticista'], ['barbeiro', 'Barbeiro'], ['manicure', 'Manicure'],
 ];
 
-type Envio = { id: string; titulo: string; texto: string; modulo: string | null; status: string; resposta: string | null; created_at: string; faz: boolean | null; orcamento_valor: number | null; orcamento_prazo: string | null; profissional: { nome: string; nome_salao: string | null; whatsapp: string | null } | null };
+type Envio = { id: string; titulo: string; texto: string; modulo: string | null; status: string; resposta: string | null; created_at: string; faz: boolean | null; orcamento_valor: number | null; orcamento_prazo: string | null; profissional: { nome: string; nome_salao: string | null; whatsapp: string | null } | null; sugestoes: { texto: string; image_url: string }[] };
 
 function Page() {
-  const meus = useServerFn(meusBriefings), salvar = useServerFn(salvarProfissional), recebidosFn = useServerFn(briefingsRecebidos), responder = useServerFn(responderBriefing);
+  const meus = useServerFn(meusBriefings), salvar = useServerFn(salvarProfissional), recebidosFn = useServerFn(briefingsRecebidos), responder = useServerFn(responderBriefing), sugerir = useServerFn(sugerirComIA);
+  const [sugestaoTexto, setSugestaoTexto] = useState('');
+  const [sugerindo, setSugerindo] = useState('');
   const [aba, setAba] = useState<'envios' | 'recebidos' | 'cadastro'>('envios');
   const [envios, setEnvios] = useState<Envio[] | null>(null);
   const [recebidos, setRecebidos] = useState<BriefingRecebido[] | null>(null);
@@ -36,8 +38,7 @@ function Page() {
     recebidosFn().then((r) => { setRecebidos(r); if (r.length) setAba('recebidos'); }).catch(() => setRecebidos([]));
   }, []);
 
-  async function responderBriefingUI(b: BriefingRecebido, faz: boolean) {
-    setRespondendo(b.id);
+  async function responderBriefingUI(b: BriefingRecebido, faz: boolean) {    setRespondendo(b.id);
     try {
       await responder({ data: { id: b.id, faz, valor: faz ? Number(respostaForm.valor.replace(',', '.')) || undefined : undefined, prazo: respostaForm.prazo || undefined, resposta: respostaForm.obs || undefined } });
       toast.success(faz ? 'Orçamento enviado à cliente!' : 'Recusa registrada.');
@@ -45,6 +46,16 @@ function Page() {
       setRecebidos(r);
       setRespostaForm({ valor: '', prazo: '', obs: '' });
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível responder.'); } finally { setRespondendo(''); }
+  }
+
+  async function sugerirComIAUI(b: BriefingRecebido) {
+    setSugerindo(b.id);
+    try {
+      const r = await sugerir({ data: { briefing_id: b.id, texto: sugestaoTexto } });
+      toast.success(r.ok ? 'Sugestão aplicada e enviada à cliente! ✨' : '');
+      setSugestaoTexto('');
+      setRecebidos(await recebidosFn());
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'A IA não conseguiu aplicar agora.'); } finally { setSugerindo(''); }
   }
 
   async function cadastrar() {
@@ -87,6 +98,27 @@ function Page() {
                 <span className="text-xs text-muted-foreground">{b.status === 'orcado' ? `💰 Orçado${b.orcamento_valor ? ` · R$ ${b.orcamento_valor.toFixed(2)}` : ''}` : b.status === 'recusado' ? '✖ Recusado' : '📤 Aguardando você'}</span>
               </div>
               <details><summary className="cursor-pointer text-xs text-accent">Ler o briefing</summary><div className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-background p-3 text-xs">{b.texto}</div></details>
+              {b.foto_url && (
+                <div className="space-y-2 rounded border bg-background p-3">
+                  <p className="text-xs font-medium">Foto enviada pela cliente (privada)</p>
+                  <img src={b.foto_url} alt="Referência enviada pela cliente" className="max-h-64 rounded object-contain" />
+                  <label className="block text-xs">Sua sugestão — a IA aplica na foto e envia pra cliente
+                    <Textarea aria-label="Sua sugestão" className="mt-1" rows={2} maxLength={1000} placeholder="ex.: volume 20% menor, contorno mais definido, tom mais natural" value={sugestaoTexto} onChange={(e) => setSugestaoTexto(e.target.value)} />
+                  </label>
+                  <Button size="sm" disabled={sugerindo === b.id || sugestaoTexto.trim().length < 5} onClick={() => void sugerirComIAUI(b)}>{sugerindo === b.id ? <LoaderCircle className="size-4 animate-spin" /> : '✨'} Aplicar com IA e enviar</Button>
+                  <p className="text-[10px] text-muted-foreground">3 sugestões grátis; depois faz parte do plano profissional.</p>
+                </div>
+              )}
+              {b.sugestoes.length > 0 && (
+                <div className="space-y-2">
+                  {b.sugestoes.map((g, i) => (
+                    <figure key={i} className="rounded border border-accent/40 bg-accent/5 p-2">
+                      <img src={g.image_url} alt={`Sugestão ${i + 1}`} className="max-h-64 rounded object-contain" />
+                      <figcaption className="mt-1 text-xs text-muted-foreground">Sugestão enviada: {g.texto}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
               {b.status === 'enviado' ? (
                 <div className="space-y-2 rounded border bg-background p-3">
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -123,6 +155,17 @@ function Page() {
               <details><summary className="cursor-pointer text-xs text-accent">Ver briefing</summary><div className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded border bg-background p-3 text-xs">{s.texto}</div></details>
               {s.status === 'orcado' && <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs">💰 <strong>Orçamento:</strong> {s.faz ? 'faz o pedido' : ''}{s.orcamento_valor ? ` · R$ ${s.orcamento_valor.toFixed(2)}` : ''}{s.orcamento_prazo ? ` · prazo: ${s.orcamento_prazo}` : ''}</div>}
               {s.status === 'recusado' && <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-xs">Este profissional não faz este pedido — tente outro da região.</div>}
+              {s.sugestoes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium">✨ Proposta visual do profissional</p>
+                  {s.sugestoes.map((g, i) => (
+                    <figure key={i} className="rounded border border-accent/40 bg-accent/5 p-2">
+                      <img src={g.image_url} alt={`Proposta visual ${i + 1}`} className="max-h-72 rounded object-contain" />
+                      <figcaption className="mt-1 text-xs text-muted-foreground">{g.texto}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
               {s.resposta && <div className="rounded border border-accent/40 bg-accent/5 p-3 text-xs whitespace-pre-wrap">Mensagem do profissional: {s.resposta}</div>}
             </article>
           ))}

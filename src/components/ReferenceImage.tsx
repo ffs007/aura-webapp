@@ -253,6 +253,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
                 modulo={tattoo ? "tatuagem" : look ? "look" : "visual"}
                 profissaoFixa={tattoo ? "tatuadora" : undefined}
                 packageId={packageId}
+                fotoPath={q.data?.path ?? undefined}
               />
             )}
             {look && pacoteKind.current === "outfit" && (
