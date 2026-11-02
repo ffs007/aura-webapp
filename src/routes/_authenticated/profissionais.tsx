@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { aplicarStencil } from '@/lib/stencil';
 import { meusBriefings, salvarProfissional, briefingsRecebidos, responderBriefing, sugerirComIA, type BriefingRecebido } from '@/lib/profissionais.functions';
 import { meusDesigns, publicarDesign, excluirDesign, ESTILOS_VITRINE, type MeuDesign } from '@/lib/vitrine.functions';
 
@@ -39,6 +41,42 @@ function Page() {
   const [arquivoV, setArquivoV] = useState<File | null>(null);
   const [publicando, setPublicando] = useState(false);
   const [vitrineErr, setVitrineErr] = useState("");
+  const [stencil, setStencil] = useState<{ design: MeuDesign; nivel: number | "auto"; fundoBranco: boolean; url: string; invertido: boolean } | null>(null);
+  const [stencilErr, setStencilErr] = useState("");
+
+  /** Fatia D3 — versão pra impressão (stencil): traço preto puro, processado no navegador (sem custo de IA). */
+  async function processarStencil(d: MeuDesign, nivel: number | "auto", fundoBranco: boolean) {
+    setStencilErr("");
+    try {
+      const img = await new Promise<HTMLImageElement>((res, rej) => {
+        const im = new Image();
+        im.crossOrigin = "anonymous";
+        im.onload = () => res(im);
+        im.onerror = () => rej(new Error("Não consegui carregar a imagem do design."));
+        im.src = d.imagem_url;
+      });
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const ctx = c.getContext("2d");
+      if (!ctx || !c.width) throw new Error("Imagem sem dimensões válidas.");
+      ctx.drawImage(img, 0, 0);
+      const dados = ctx.getImageData(0, 0, c.width, c.height);
+      const r = aplicarStencil(dados.data, c.width, c.height, fundoBranco, nivel === "auto" ? undefined : nivel);
+      ctx.putImageData(dados, 0, 0);
+      const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
+      if (!blob) throw new Error("Não consegui gerar o PNG.");
+      const url = URL.createObjectURL(blob);
+      setStencil((s) => { if (s?.url) URL.revokeObjectURL(s.url); return { design: d, nivel, fundoBranco, url, invertido: r.invertido }; });
+    } catch (e) { setStencilErr(e instanceof Error ? e.message : "Falha ao gerar o stencil."); }
+  }
+
+  function baixarStencil() {
+    if (!stencil) return;
+    const a = document.createElement("a");
+    a.href = stencil.url;
+    a.download = `stencil-${stencil.design.titulo.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.png`;
+    a.click();
+  }
 
   async function carregarDesigns() {
     try { setDesigns(await designsFn()); } catch { setDesigns([]); }
@@ -238,6 +276,7 @@ function Page() {
                     <p className="truncate text-xs text-muted-foreground">{d.estilo ?? '—'}{d.local_sugerido ? ` · ${d.local_sugerido}` : ''}</p>
                     <div className="mt-1 flex gap-1">
                       <Button size="sm" variant="ghost" title={d.ativo ? 'Pausar' : 'Reativar'} onClick={() => void publicarFn({ data: { id: d.id, titulo: d.titulo, estilo: d.estilo ?? undefined, tamanho: d.tamanho ?? undefined, local_sugerido: d.local_sugerido ?? undefined, descricao: d.descricao ?? undefined, imagem_url: d.imagem_url, ativo: !d.ativo } }).then(carregarDesigns).catch((e) => toast.error(e instanceof Error ? e.message : 'Erro.'))}>{d.ativo ? '⏸️' : '▶️'}</Button>
+                      <Button size="sm" variant="ghost" title="Versão para impressão (stencil)" onClick={() => void processarStencil(d, "auto", false)}>🖨️</Button>
                       <Button size="sm" variant="ghost" title="Excluir" onClick={() => { if (confirm(`Excluir "${d.titulo}"?`)) void excluirDesignFn({ data: { id: d.id } }).then(carregarDesigns).catch((e) => toast.error(e instanceof Error ? e.message : 'Erro.')); }}>🗑️</Button>
                     </div>
                   </div>
@@ -275,6 +314,31 @@ function Page() {
           )}
         </section>
       )}
+      <Dialog open={!!stencil} onOpenChange={(o) => { if (!o) { if (stencil?.url) URL.revokeObjectURL(stencil.url); setStencil(null); } }}>
+        <DialogContent>
+          {stencil && (
+            <div className="space-y-3">
+              <DialogTitle>🖨️ Stencil — {stencil.design.titulo}</DialogTitle>
+              <div className="mx-auto max-w-xs rounded border p-2" style={{ background: "repeating-conic-gradient(#e5e5e5 0 25%, #ffffff 0 50%) 0 0 / 16px 16px" }}>
+                <img src={stencil.url} alt={`Stencil de ${stencil.design.titulo}`} className="w-full object-contain" />
+              </div>
+              <p className="text-xs text-muted-foreground">Traço preto puro convertido no seu aparelho — fiel ao design original, pronto para impressora térmica.{stencil.invertido ? " (desenho branco-no-preto detectado e invertido)" : ""}</p>
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={stencil.nivel === "auto"} onChange={(e) => void processarStencil(stencil.design, e.target.checked ? "auto" : 128, stencil.fundoBranco)} /> Limiar automático</label>
+                {stencil.nivel !== "auto" && (
+                  <input type="range" min={20} max={235} value={stencil.nivel} className="flex-1" onChange={(e) => void processarStencil(stencil.design, Number(e.target.value), stencil.fundoBranco)} aria-label="Limiar do traço" />
+                )}
+                <label className="flex items-center gap-2"><input type="checkbox" checked={stencil.fundoBranco} onChange={(e) => void processarStencil(stencil.design, stencil.nivel, e.target.checked)} /> Fundo branco</label>
+              </div>
+              {stencilErr && <p role="alert" className="text-sm text-destructive">{stencilErr}</p>}
+              <div className="flex gap-2">
+                <Button size="sm" onClick={baixarStencil}>⬇️ Baixar PNG {stencil.fundoBranco ? "(fundo branco)" : "(fundo transparente)"}</Button>
+                <Button size="sm" variant="outline" onClick={() => { if (stencil.url) URL.revokeObjectURL(stencil.url); setStencil(null); }}>Fechar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

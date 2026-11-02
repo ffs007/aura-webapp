@@ -147,6 +147,11 @@ briefing como PRODUTO pronto para levar à pele.
 - Do design/teste, botão "Gerar versão para impressão": PNG sem fundo, traço
   preto de alto contraste, pronto para impressão térmica + download.
   (Honesto: PNG de alta definição — vetorização real fica para uma fase futura.)
+- ✅ 2026-11-02: `lib/stencil.ts` — conversão **determinística no navegador**
+  (limiar de Otsu + detecção de polaridade pela moldura; SEM IA — molde não
+  pode ser redesenhado, e não gasta crédito). Botão 🖨️ em cada design do
+  estúdio → pré-visualização + limiar automático/manual + fundo
+  transparente/branco + download PNG. Testes de pixel em vitest.
 
 ### Fatia D4 — Estúdio responde com IA
 - JÁ PRONTO via A3 — funciona para tatuadora, barbeiro e cabeleireira. ✅
