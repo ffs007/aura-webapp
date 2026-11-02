@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useServerFn } from '@tanstack/react-start';
 import { PROCEDIMENTOS, analisarSimetria, briefingEstetico, simularProcedimento, type AnaliseSimetria } from '@/lib/estetica.functions';
 import { EnviarBriefing } from '@/components/EnviarBriefing';
+import { JornadaEstetica } from '@/components/JornadaEstetica';
 
 export const Route = createFileRoute('/_authenticated/estetica')({
   head: () => ({ meta: [{ title: 'Estética · Aura ID' }] }),
@@ -227,6 +228,8 @@ function Page() {
           {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
         </section>
       )}
+
+      <JornadaEstetica procedimentoAtual={proc} />
     </div>
   );
 }

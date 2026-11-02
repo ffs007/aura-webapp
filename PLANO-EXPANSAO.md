@@ -111,6 +111,20 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
 
 ### Fatia C4 — Jornada pós-procedimento
 - Diário de evolução (como o de tatuagem), lembretes de retorno, cuidados.
+- ✅ 2026-11-02: tabela `estetica_jornada` + `estetica_registro` (RLS FECHADA —
+  só a própria usuária; nem admin lê; service_role só p/ LGPD/exportação);
+  seção "🌱 Jornada pós-procedimento" na /estetica: começar jornada com data
+  de retorno, contagem regressiva (badge âmbar ≤7 dias), cuidados
+  determinísticos por procedimento (zero IA), diário com fotos PRIVADAS,
+  concluir/excluir (cascata). E2E 8/8.
+
+---
+
+## 🏁 ESTADO DO PLANO (2026-11-02)
+**PRODUTO COMPLETO: Projetos A, B, C (C1-C4), D (D1-D4) e E (E1-E3) TODOS
+entregues e provados E2E.** Falta apenas o item final: **MERCADO** (Stripe
+live + Plano Profissional R$ 49,90/mês + créditos de IA) — por decisão do
+Felipe, o último passo, quando ele der o sinal.
 
 ---
 
@@ -186,7 +200,7 @@ ganha canal de feedback desde a primeira entrega.**
 6. **B3 (provador virtual)** — a cliente vestindo a peça REAL do catálogo (IDM-VTON pessoa+peça, reserva Kontext) ✅ 2026-11-01
 7. **Micropágina do profissional (/p/{slug})** — link público para divulgar no Instagram, CTA de briefing ✅ 2026-11-01
 8. **B4 v1 (importador CSV em massa)** — planilha Google Shopping/simples vira catálogo em 1 clique ✅ 2026-11-01 (APIs de afiliado ficam para quando houver contas de afiliado)
-9. C3-resto: anexar foto padronizada ao briefing de estética (pequeno) e C4 (jornada pós-procedimento)
+9. ✅ C3-resto (foto anexa) e C4 (jornada pós-procedimento) — 2026-11-02
 10. **D1 → D2 → D3** (tatuagem redonda: vitrine do estúdio → copiar pra mim → stencil)
 11. **E1** (trilha masculina/barbearia) → E2/E3
 12. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA

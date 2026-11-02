@@ -80,8 +80,7 @@ export const simularProcedimento = createServerFn({ method: 'POST' })
     }
   });
 
-export const briefingEstetico = createServerFn({ method: 'POST' })
-  .middleware([requireSupabaseAuth])
+export const briefingEstetico = createServerFn({ method: 'POST' })  .middleware([requireSupabaseAuth])
   .validator((d) => z.object({
     procedimento: z.string().min(3).max(60),
     regioes: z.array(z.object({ regiao: z.string().max(40), assimetria_pct: z.number().min(0).max(30), observacao: z.string().max(200) })).min(1).max(8),
@@ -96,4 +95,104 @@ export const briefingEstetico = createServerFn({ method: 'POST' })
     const parse = z.object({ titulo: z.string().min(1).max(120), conteudo: z.string().min(20).max(6000) }).safeParse(r.data);
     if (!parse.success) return { error: 'Não consegui montar o briefing agora.', titulo: null, texto: null };
     return { error: null, titulo: parse.data.titulo, texto: parse.data.conteudo };
+  });
+
+/**
+ * FATIA C4 — JORNADA PÓS-PROCEDIMENTO: diário de evolução, data de retorno e
+ * cuidados. Dado sensível: RLS fechada (só a própria usuária; nem admin lê).
+ * Cuidados determinísticos por procedimento — zero IA, zero crédito.
+ */
+export const CUIDADOS: Record<string, string[]> = {
+  preenchimento_labial: ['Gelo nas primeiras 24h (10 min por hora, se orientada)', 'Evitar calor intenso (sol, sauna) por 48h', 'Não comprimir ou massagear sem orientação do profissional', 'Hidratação labial conforme orientação'],
+  toxina_botulinica: ['Não deitar de bruços nas primeiras 4h', 'Não fazer massagem/esfregar a área por 24h', 'Evitar atividade física intensa no 1º dia', 'Atividade facial normal (mexer as expressões) ajuda a fixação'],
+  harmonizacao_facial: ['Gelo intermitente nas primeiras 24h', 'Dormir de barriga pra cima nos primeiros dias', 'Evitar manipular as áreas tratadas', 'Alimentação fria/morna no 1º dia se houver região oral'],
+  peeling_rejuvenescimento: ['Protetor solar várias vezes ao dia, SEM exceção', 'Não puxar descamações — deixar cair sozinhas', 'Limpeza suave com produto indicado pelo profissional', 'Evitar ácidos/ativos até liberação'],
+  olhos_sobrancelhas: ['Não esfregar os olhos na região tratada', 'Evitar maquiagem na área nas primeiras 24h', 'Gelo envolto em pano limpo se houver inchaço', 'Comparecer ao retorno programado'],
+};
+
+export type RegistroJornada = { id: string; quando: string; texto: string | null; foto_url: string | null };
+export type JornadaEstetica = { id: string; procedimento: string; inicio: string; retorno_em: string | null; status: string; registros: RegistroJornada[] };
+
+export const criarJornada = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({
+    procedimento: z.enum(PROCEDIMENTOS.map((p) => p.id) as [string, ...string[]]),
+    inicio: z.string().min(8).max(40),
+    retorno_em: z.string().min(8).max(40).optional(),
+  }).parse(d))
+  .handler(async ({ data, context: { supabase, userId } }) => {
+    const { data: j, error } = await supabase.from('estetica_jornada').insert({
+      user_id: userId,
+      procedimento: data.procedimento,
+      inicio: new Date(data.inicio).toISOString(),
+      ...(data.retorno_em ? { retorno_em: new Date(data.retorno_em).toISOString() } : {}),
+    }).select('id').single();
+    if (error || !j) throw new Error('Não foi possível começar a jornada agora.');
+    return { id: (j as { id: string }).id };
+  });
+
+export const listarJornadas = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context: { supabase } }) => {
+    const { data: js, error } = await supabase.from('estetica_jornada')
+      .select('id,procedimento,inicio,retorno_em,status,estetica_registro(id,quando,texto,foto_path)')
+      .order('created_at', { ascending: false }).limit(20);
+    if (error) throw new Error('Não foi possível carregar suas jornadas.');
+    const saida: JornadaEstetica[] = [];
+    for (const j of js ?? []) {
+      const registros: RegistroJornada[] = [];
+      for (const r of ((j as { estetica_registro?: { id: string; quando: string; texto: string | null; foto_path: string | null }[] }).estetica_registro ?? [])) {
+        let foto_url: string | null = null;
+        if (r.foto_path) {
+          const s = await supabase.storage.from('user-photos').createSignedUrl(r.foto_path, 3600);
+          foto_url = s.data?.signedUrl ?? null;
+        }
+        registros.push({ id: r.id, quando: r.quando, texto: r.texto, foto_url });
+      }
+      registros.sort((a, b) => b.quando.localeCompare(a.quando));
+      saida.push({ id: j.id, procedimento: j.procedimento, inicio: j.inicio, retorno_em: j['retorno_em'], status: j['status'], registros });
+    }
+    return saida;
+  });
+
+export const addRegistro = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({
+    jornada_id: z.string().uuid(),
+    texto: z.string().min(3).max(2000).optional(),
+    foto_path: z.string().min(5).max(300).optional(),
+  }).refine((x) => x.texto || x.foto_path, { message: 'Escreva algo ou anexe uma foto.' }).parse(d))
+  .handler(async ({ data, context: { supabase } }) => {
+    const { error } = await supabase.from('estetica_registro').insert({
+      jornada_id: data.jornada_id,
+      ...(data.texto ? { texto: data.texto.trim() } : {}),
+      ...(data.foto_path ? { foto_path: data.foto_path } : {}),
+    });
+    if (error) throw new Error('Não foi possível salvar o registro.');
+    return { ok: true };
+  });
+
+export const atualizarJornada = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({
+    id: z.string().uuid(),
+    status: z.enum(['ativa', 'concluida', 'pausada']).optional(),
+    retorno_em: z.string().min(8).max(40).nullable().optional(),
+  }).parse(d))
+  .handler(async ({ data, context: { supabase } }) => {
+    const campos: Record<string, unknown> = {};
+    if (data.status) campos['status'] = data.status;
+    if (data.retorno_em !== undefined) campos['retorno_em'] = data.retorno_em ? new Date(data.retorno_em).toISOString() : null;
+    const { error } = await supabase.from('estetica_jornada').update(campos).eq('id', data.id);
+    if (error) throw new Error('Não foi possível atualizar a jornada.');
+    return { ok: true };
+  });
+
+export const excluirJornada = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context: { supabase } }) => {
+    const { error } = await supabase.from('estetica_jornada').delete().eq('id', data.id);
+    if (error) throw new Error('Não foi possível excluir a jornada.');
+    return { ok: true };
   });

@@ -38,6 +38,18 @@ export type Database = {
         Update: { [key: string]: unknown }
         Relationships: []
       },
+      estetica_jornada: {
+        Row: { id: string; user_id: string; procedimento: string; inicio: string; retorno_em: string | null; status: string; created_at: string }
+        Insert: { id?: string; user_id: string; procedimento: string; inicio?: string; retorno_em?: string | null; status?: string; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: []
+      },
+      estetica_registro: {
+        Row: { id: string; jornada_id: string; quando: string; texto: string | null; foto_path: string | null; created_at: string }
+        Insert: { id?: string; jornada_id: string; quando?: string; texto?: string | null; foto_path?: string | null; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: [{ foreignKeyName: string; columns: ['jornada_id']; isOneToOne: false; referencedRelation: 'estetica_jornada'; referencedColumns: ['id'] }]
+      },
       tattoo_designs: {
         Row: { id: string; professional_id: string; imagem_url: string; titulo: string; estilo: string | null; tamanho: string | null; local_sugerido: string | null; descricao: string | null; destaque: number; ativo: boolean; created_at: string }
         Insert: { id?: string; professional_id: string; imagem_url: string; titulo: string; estilo?: string | null; tamanho?: string | null; local_sugerido?: string | null; descricao?: string | null; destaque?: number; ativo?: boolean; created_at?: string }
