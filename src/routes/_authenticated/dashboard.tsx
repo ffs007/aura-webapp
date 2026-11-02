@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { souAdmin } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AiLabel, Indicators } from "@/components/PackageView";
@@ -20,6 +22,9 @@ const FILTERS = [["all", "todas"], ["new", "novas"], ["saved", "salvas"], ["appr
 function Dashboard() {
   const { batch } = Route.useSearch();
   const [filter, setFilter] = useState<string>("all");
+  const souAdminFn = useServerFn(souAdmin);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { souAdminFn().then((r) => setIsAdmin(r.admin)).catch(() => {}); }, []);
   const q = useQuery({
     queryKey: ["packages"],
     queryFn: async () => {
@@ -58,6 +63,11 @@ function Dashboard() {
   return (
     <div>
       {guia}
+      {isAdmin && (
+        <div className="mb-4">
+          <Button asChild size="sm" variant="outline"><Link to="/admin">🛠️ Painel admin — catálogo parceiro</Link></Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-5xl">{batch ? "Convites fresquinhos" : "Suas sugestões"}</h1>

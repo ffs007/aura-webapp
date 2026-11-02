@@ -113,11 +113,16 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
 ---
 
 ## ORDEM SUGERIDA (valor mais rápido primeiro)
-1. **A1+A2** (rede com match e orçamento) — usa o briefing que já existe
-2. **C1+C2** (simetria+simulação) — diferenciais de produto; vira case
-3. **B2** (catálogo parceiro) — monetiza com lojas (PREMISSA 2)
-4. **A3** (IA do profissional) — receita recorrente de crédito
-5. B3/B4 e C3/C4 completam a experiência
+1. **A1+A2** (rede com match e orçamento) — usa o briefing que já existe ✅
+2. **C1+C2** (simetria+simulação) — diferenciais de produto; vira case ✅
+3. **B2** (catálogo parceiro) — monetiza com lojas (PREMISSA 2) ✅
+4. **A3** (IA do profissional) — receita recorrente de crédito ✅
+5. CRUD admin do catálogo (painel /admin no webapp — sem Table Editor) ✅ 2026-11-01
+6. B3 (gerar o look com a peça real do catálogo) e micropágina do profissional
+7. B4/C3/C4 completam a experiência
+8. **MERCADO por último** (decisão do Felipe 2026-11-01: preservar créditos de IA
+   enquanto produz conteúdo para os primeiros clientes que já esperam) — só então
+   Stripe live + Plano Profissional R$ 49,90 + créditos.
 
 ## TÁTICA DE CONSTRUÇÃO (combinada com o Felipe)
 Eu construo as fatias que couberem por sessão ("continua"); o que eu não
