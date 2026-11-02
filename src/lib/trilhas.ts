@@ -40,6 +40,7 @@ export const TRILHAS: Record<TrilhaKey, TrilhaDef> = {
     links: [
       ["/roupas", "Roupas"],
       ["/tatuagem", "Tatuagens"],
+      ["/tatuagem/vitrine", "Vitrine"],
       ["/jornada", "Jornada"],
     ],
   },

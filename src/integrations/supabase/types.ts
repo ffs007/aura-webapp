@@ -38,6 +38,12 @@ export type Database = {
         Update: { [key: string]: unknown }
         Relationships: []
       },
+      tattoo_designs: {
+        Row: { id: string; professional_id: string; imagem_url: string; titulo: string; estilo: string | null; tamanho: string | null; local_sugerido: string | null; descricao: string | null; destaque: number; ativo: boolean; created_at: string }
+        Insert: { id?: string; professional_id: string; imagem_url: string; titulo: string; estilo?: string | null; tamanho?: string | null; local_sugerido?: string | null; descricao?: string | null; destaque?: number; ativo?: boolean; created_at?: string }
+        Update: { [key: string]: unknown }
+        Relationships: [{ foreignKeyName: string; columns: ['professional_id']; isOneToOne: false; referencedRelation: 'professionals'; referencedColumns: ['id'] }]
+      },
       professionals: {
         Row: {
           id: string

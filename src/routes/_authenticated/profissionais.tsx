@@ -1,12 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { meusBriefings, salvarProfissional, briefingsRecebidos, responderBriefing, sugerirComIA, type BriefingRecebido } from '@/lib/profissionais.functions';
+import { meusDesigns, publicarDesign, excluirDesign, ESTILOS_VITRINE, type MeuDesign } from '@/lib/vitrine.functions';
 
 export const Route = createFileRoute('/_authenticated/profissionais')({
   head: () => ({ meta: [{ title: 'Profissionais · Aura ID' }] }),
@@ -22,15 +24,48 @@ type Envio = { id: string; titulo: string; texto: string; modulo: string | null;
 
 function Page() {
   const meus = useServerFn(meusBriefings), salvar = useServerFn(salvarProfissional), recebidosFn = useServerFn(briefingsRecebidos), responder = useServerFn(responderBriefing), sugerir = useServerFn(sugerirComIA);
+  const designsFn = useServerFn(meusDesigns), publicarFn = useServerFn(publicarDesign), excluirDesignFn = useServerFn(excluirDesign);
   const [sugestaoTexto, setSugestaoTexto] = useState('');
   const [sugerindo, setSugerindo] = useState('');
-  const [aba, setAba] = useState<'envios' | 'recebidos' | 'cadastro'>('envios');
+  const [aba, setAba] = useState<'envios' | 'recebidos' | 'cadastro' | 'vitrine'>('envios');
   const [envios, setEnvios] = useState<Envio[] | null>(null);
   const [recebidos, setRecebidos] = useState<BriefingRecebido[] | null>(null);
   const [respondendo, setRespondendo] = useState("");
   const [respostaForm, setRespostaForm] = useState<{ valor: string; prazo: string; obs: string }>({ valor: '', prazo: '', obs: '' });
   const [salvando, setSalvando] = useState(false);
   const [meuLink, setMeuLink] = useState("");
+  const [designs, setDesigns] = useState<MeuDesign[] | null>(null);
+  const [formV, setFormV] = useState({ titulo: "", estilo: "fine line", tamanho: "", local: "", descricao: "", ativo: true });
+  const [arquivoV, setArquivoV] = useState<File | null>(null);
+  const [publicando, setPublicando] = useState(false);
+  const [vitrineErr, setVitrineErr] = useState("");
+
+  async function carregarDesigns() {
+    try { setDesigns(await designsFn()); } catch { setDesigns([]); }
+  }
+
+  /** Fatia D1 — publica um design: upload no bucket público studio-media + registro. */
+  async function publicarDesignUI() {
+    setVitrineErr(""); setPublicando(true);
+    try {
+      if (!arquivoV) return setVitrineErr("Escolha a imagem do design.");
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return setVitrineErr("Entre na sua conta.");
+      const caminho = `${u.user.id}/design-${Date.now()}`;
+      const up = await supabase.storage.from("studio-media").upload(caminho, arquivoV, { contentType: arquivoV.type || "image/png" });
+      if (up.error) throw new Error(up.error.message);
+      const pub = supabase.storage.from("studio-media").getPublicUrl(caminho);
+      await publicarFn({ data: {
+        titulo: formV.titulo, estilo: formV.estilo || undefined, tamanho: formV.tamanho || undefined,
+        local_sugerido: formV.local || undefined, descricao: formV.descricao || undefined,
+        imagem_url: pub.data.publicUrl, ativo: formV.ativo,
+      } });
+      toast.success("Design publicado na vitrine! 🖤");
+      setFormV({ titulo: "", estilo: "fine line", tamanho: "", local: "", descricao: "", ativo: true });
+      setArquivoV(null);
+      await carregarDesigns();
+    } catch (e) { setVitrineErr(e instanceof Error ? e.message : "Não foi possível publicar."); } finally { setPublicando(false); }
+  }
   const [form, setForm] = useState({ nome: '', profissao: 'maquiadora', nome_salao: '', cep: '', whatsapp: '', instagram: '', bio: '', raio: 25 });
   const [err, setErr] = useState('');
 
@@ -87,6 +122,7 @@ function Page() {
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant={aba === 'envios' ? 'default' : 'outline'} onClick={() => setAba('envios')}>Meus envios</Button>
         {(recebidos?.length ?? 0) > 0 && <Button size="sm" variant={aba === 'recebidos' ? 'default' : 'outline'} onClick={() => setAba('recebidos')}>Recebidos ({recebidos?.length})</Button>}
+        <Button size="sm" variant={aba === 'vitrine' ? 'default' : 'outline'} onClick={() => { setAba('vitrine'); if (designs === null) void carregarDesigns(); }}>🖤 Vitrine do estúdio</Button>
         <Button size="sm" variant={aba === 'cadastro' ? 'default' : 'outline'} onClick={() => setAba('cadastro')}>Sou profissional — cadastrar</Button>
       </div>
 
@@ -171,6 +207,44 @@ function Page() {
               {s.resposta && <div className="rounded border border-accent/40 bg-accent/5 p-3 text-xs whitespace-pre-wrap">Mensagem do profissional: {s.resposta}</div>}
             </article>
           ))}
+        </section>
+      )}
+
+      {aba === 'vitrine' && (
+        <section className="space-y-4 rounded-lg border bg-card p-5">
+          <div>
+            <p className="text-sm font-medium">🖤 Vitrine do estúdio</p>
+            <p className="mt-1 text-xs text-muted-foreground">Publique seus designs para as clientes verem na <Link to="/tatuagem/vitrine" className="underline text-accent">vitrine</Link> — e em breve testarem no próprio corpo antes de marcar. Exclusivo para perfis de tatuadora(o).</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm">Título do design<Input aria-label="Título do design" className="mt-1" placeholder="ex.: Ramo botânico fino" value={formV.titulo} onChange={(e) => setFormV({ ...formV, titulo: e.target.value })} /></label>
+            <label className="text-sm">Estilo<select aria-label="Estilo" className="mt-1 w-full rounded-md border bg-background p-2 text-sm" value={formV.estilo} onChange={(e) => setFormV({ ...formV, estilo: e.target.value })}>{ESTILOS_VITRINE.map((e) => <option key={e} value={e}>{e}</option>)}</select></label>
+            <label className="text-sm">Tamanho sugerido (opcional)<Input aria-label="Tamanho" className="mt-1" placeholder="ex.: 8 cm" value={formV.tamanho} onChange={(e) => setFormV({ ...formV, tamanho: e.target.value })} /></label>
+            <label className="text-sm">Local sugerido (opcional)<Input aria-label="Local sugerido" className="mt-1" placeholder="ex.: antebraço esquerdo" value={formV.local} onChange={(e) => setFormV({ ...formV, local: e.target.value })} /></label>
+          </div>
+          <label className="block text-sm">Descrição (opcional)<Textarea aria-label="Descrição" className="mt-1" rows={2} maxLength={400} value={formV.descricao} onChange={(e) => setFormV({ ...formV, descricao: e.target.value })} /></label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setArquivoV(e.target.files?.[0] ?? null)} />{arquivoV ? `📎 ${arquivoV.name}` : "Escolher imagem do design (PNG/JPG)"}</label>
+          {vitrineErr && <p role="alert" className="text-sm text-destructive">{vitrineErr}</p>}
+          <Button disabled={publicando || formV.titulo.trim().length < 2 || !arquivoV} onClick={() => void publicarDesignUI()}>{publicando ? <LoaderCircle className="size-4 animate-spin" /> : null}Publicar design</Button>
+          {designs === null && <p className="text-xs text-muted-foreground">Carregando seus designs…</p>}
+          {designs?.length === 0 && <p className="text-xs text-muted-foreground">Nenhum design publicado ainda.</p>}
+          {designs && designs.length > 0 && (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {designs.map((d) => (
+                <li key={d.id} className="flex gap-3 rounded-md border bg-background p-3">
+                  <img src={d.imagem_url} alt={d.titulo} className="size-20 shrink-0 rounded object-contain" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{d.titulo} {!d.ativo && <span className="text-xs text-muted-foreground">· ⏸️</span>}</p>
+                    <p className="truncate text-xs text-muted-foreground">{d.estilo ?? '—'}{d.local_sugerido ? ` · ${d.local_sugerido}` : ''}</p>
+                    <div className="mt-1 flex gap-1">
+                      <Button size="sm" variant="ghost" title={d.ativo ? 'Pausar' : 'Reativar'} onClick={() => void publicarFn({ data: { id: d.id, titulo: d.titulo, estilo: d.estilo ?? undefined, tamanho: d.tamanho ?? undefined, local_sugerido: d.local_sugerido ?? undefined, descricao: d.descricao ?? undefined, imagem_url: d.imagem_url, ativo: !d.ativo } }).then(carregarDesigns).catch((e) => toast.error(e instanceof Error ? e.message : 'Erro.'))}>{d.ativo ? '⏸️' : '▶️'}</Button>
+                      <Button size="sm" variant="ghost" title="Excluir" onClick={() => { if (confirm(`Excluir "${d.titulo}"?`)) void excluirDesignFn({ data: { id: d.id } }).then(carregarDesigns).catch((e) => toast.error(e instanceof Error ? e.message : 'Erro.')); }}>🗑️</Button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

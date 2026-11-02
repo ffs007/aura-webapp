@@ -219,7 +219,7 @@ function Page() {
                 <Button size="sm" variant="secondary" onClick={() => { void navigator.clipboard.writeText(briefTxt.texto); toast.success('Copiado!'); }}>Copiar</Button>
                 <Button size="sm" variant="secondary" onClick={baixar}>Baixar .md</Button>
               </div>
-              <EnviarBriefing titulo={briefTxt.titulo} texto={briefTxt.texto} modulo="estetica" profissaoFixa="esteticista" />
+              <EnviarBriefing titulo={briefTxt.titulo} texto={briefTxt.texto} modulo="estetica" profissaoFixa="esteticista" fotoPath={foto?.path ?? undefined} />
               <p className="text-xs text-amber-700">⚕️ {DISCLAIMER}</p>
             </div>
           )}

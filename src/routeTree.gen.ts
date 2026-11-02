@@ -72,6 +72,7 @@ import { Route as AuthenticatedTatuagemDecisaoRouteImport } from './routes/_auth
 import { Route as AuthenticatedTatuagemGerarRouteImport } from './routes/_authenticated/tatuagem/gerar'
 import { Route as AuthenticatedTatuagemPerfilRouteImport } from './routes/_authenticated/tatuagem/perfil'
 import { Route as AuthenticatedTatuagemReferenciasRouteImport } from './routes/_authenticated/tatuagem/referencias'
+import { Route as AuthenticatedTatuagemVitrineRouteImport } from './routes/_authenticated/tatuagem/vitrine'
 import { Route as AuthenticatedCabeloPlanoIdRouteImport } from './routes/_authenticated/cabelo/plano.$id'
 import { Route as AuthenticatedJornadaPlanoIdRouteImport } from './routes/_authenticated/jornada/plano.$id'
 import { Route as AuthenticatedJornadaRelatorioIdRouteImport } from './routes/_authenticated/jornada/relatorio.$id'
@@ -433,6 +434,12 @@ const AuthenticatedTatuagemReferenciasRoute =
     path: '/referencias',
     getParentRoute: () => AuthenticatedTatuagemRouteRoute,
   } as any)
+const AuthenticatedTatuagemVitrineRoute =
+  AuthenticatedTatuagemVitrineRouteImport.update({
+    id: '/vitrine',
+    path: '/vitrine',
+    getParentRoute: () => AuthenticatedTatuagemRouteRoute,
+  } as any)
 const AuthenticatedCabeloPlanoIdRoute =
   AuthenticatedCabeloPlanoIdRouteImport.update({
     id: '/plano/$id',
@@ -527,6 +534,7 @@ export interface FileRoutesByFullPath {
   '/tatuagem/gerar': typeof AuthenticatedTatuagemGerarRoute
   '/tatuagem/perfil': typeof AuthenticatedTatuagemPerfilRoute
   '/tatuagem/referencias': typeof AuthenticatedTatuagemReferenciasRoute
+  '/tatuagem/vitrine': typeof AuthenticatedTatuagemVitrineRoute
   '/cabelo/': typeof AuthenticatedCabeloIndexRoute
   '/dna/': typeof AuthenticatedDnaIndexRoute
   '/jornada/': typeof AuthenticatedJornadaIndexRoute
@@ -592,6 +600,7 @@ export interface FileRoutesByTo {
   '/tatuagem/gerar': typeof AuthenticatedTatuagemGerarRoute
   '/tatuagem/perfil': typeof AuthenticatedTatuagemPerfilRoute
   '/tatuagem/referencias': typeof AuthenticatedTatuagemReferenciasRoute
+  '/tatuagem/vitrine': typeof AuthenticatedTatuagemVitrineRoute
   '/cabelo': typeof AuthenticatedCabeloIndexRoute
   '/dna': typeof AuthenticatedDnaIndexRoute
   '/jornada': typeof AuthenticatedJornadaIndexRoute
@@ -664,6 +673,7 @@ export interface FileRoutesById {
   '/_authenticated/tatuagem/gerar': typeof AuthenticatedTatuagemGerarRoute
   '/_authenticated/tatuagem/perfil': typeof AuthenticatedTatuagemPerfilRoute
   '/_authenticated/tatuagem/referencias': typeof AuthenticatedTatuagemReferenciasRoute
+  '/_authenticated/tatuagem/vitrine': typeof AuthenticatedTatuagemVitrineRoute
   '/_authenticated/cabelo/': typeof AuthenticatedCabeloIndexRoute
   '/_authenticated/dna/': typeof AuthenticatedDnaIndexRoute
   '/_authenticated/jornada/': typeof AuthenticatedJornadaIndexRoute
@@ -736,6 +746,7 @@ export interface FileRouteTypes {
     | '/tatuagem/gerar'
     | '/tatuagem/perfil'
     | '/tatuagem/referencias'
+    | '/tatuagem/vitrine'
     | '/cabelo/'
     | '/dna/'
     | '/jornada/'
@@ -801,6 +812,7 @@ export interface FileRouteTypes {
     | '/tatuagem/gerar'
     | '/tatuagem/perfil'
     | '/tatuagem/referencias'
+    | '/tatuagem/vitrine'
     | '/cabelo'
     | '/dna'
     | '/jornada'
@@ -872,6 +884,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tatuagem/gerar'
     | '/_authenticated/tatuagem/perfil'
     | '/_authenticated/tatuagem/referencias'
+    | '/_authenticated/tatuagem/vitrine'
     | '/_authenticated/cabelo/'
     | '/_authenticated/dna/'
     | '/_authenticated/jornada/'
@@ -1337,6 +1350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTatuagemReferenciasRouteImport
       parentRoute: typeof AuthenticatedTatuagemRouteRoute
     }
+    '/_authenticated/tatuagem/vitrine': {
+      id: '/_authenticated/tatuagem/vitrine'
+      path: '/vitrine'
+      fullPath: '/tatuagem/vitrine'
+      preLoaderRoute: typeof AuthenticatedTatuagemVitrineRouteImport
+      parentRoute: typeof AuthenticatedTatuagemRouteRoute
+    }
     '/_authenticated/cabelo/plano/$id': {
       id: '/_authenticated/cabelo/plano/$id'
       path: '/plano/$id'
@@ -1489,6 +1509,7 @@ interface AuthenticatedTatuagemRouteRouteChildren {
   AuthenticatedTatuagemGerarRoute: typeof AuthenticatedTatuagemGerarRoute
   AuthenticatedTatuagemPerfilRoute: typeof AuthenticatedTatuagemPerfilRoute
   AuthenticatedTatuagemReferenciasRoute: typeof AuthenticatedTatuagemReferenciasRoute
+  AuthenticatedTatuagemVitrineRoute: typeof AuthenticatedTatuagemVitrineRoute
   AuthenticatedTatuagemIndexRoute: typeof AuthenticatedTatuagemIndexRoute
   AuthenticatedTatuagemPlanoIdRoute: typeof AuthenticatedTatuagemPlanoIdRoute
 }
@@ -1502,6 +1523,7 @@ const AuthenticatedTatuagemRouteRouteChildren: AuthenticatedTatuagemRouteRouteCh
     AuthenticatedTatuagemPerfilRoute: AuthenticatedTatuagemPerfilRoute,
     AuthenticatedTatuagemReferenciasRoute:
       AuthenticatedTatuagemReferenciasRoute,
+    AuthenticatedTatuagemVitrineRoute: AuthenticatedTatuagemVitrineRoute,
     AuthenticatedTatuagemIndexRoute: AuthenticatedTatuagemIndexRoute,
     AuthenticatedTatuagemPlanoIdRoute: AuthenticatedTatuagemPlanoIdRoute,
   }

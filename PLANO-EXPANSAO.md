@@ -106,6 +106,8 @@ Quem vende (lojas, marcas, profissionais) paga para aparecer primeiro:
   simetria, fotos padronizadas anexadas, expectativa realista, perguntas ao
   profissional, contraindicações a relatar (alergias, gestação...).
 - Conecta ao PROJETO A: encontrar profissionais de estética na região.
+- ✅ 2026-11-01: foto padronizada anexada ao briefing (fotoPath no EnviarBriefing
+  da estética — o esteticista recebe a foto da cliente como no A3).
 
 ### Fatia C4 — Jornada pós-procedimento
 - Diário de evolução (como o de tatuagem), lembretes de retorno, cuidados.
@@ -123,6 +125,10 @@ briefing como PRODUTO pronto para levar à pele.
 - Tabela `tattoo_designs`: estúdio publica designs (imagem, título, estilo,
   tamanho/local sugerido); campo `destaque` = patrocínio (Premissa 2).
 - Vitrine filtrável por estilo no webapp; CRUD no painel do profissional.
+- ✅ 2026-11-01: bucket público `studio-media` + tabela + RLS; aba "🖤 Vitrine
+  do estúdio" em Profissionais (upload + publicar + pausar/excluir); página
+  `/tatuagem/vitrine` com filtros por estilo, badge Patrocinado e link pro
+  `/p/{slug}` do estúdio; link "Vitrine" na trilha Estilo.
 
 ### Fatia D2 — "Copiar pra mim" (provador de tatuagem)
 - Usuária vê um design → IA aplica NO CORPO DELA (modelo pessoal preferido;
