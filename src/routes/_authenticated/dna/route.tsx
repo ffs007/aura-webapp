@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Aviso, CabecalhoPagina } from "@/components/estados";
 
 export const Route = createFileRoute("/_authenticated/dna")({
   component: DnaLayout,
@@ -23,14 +24,14 @@ function DnaLayout() {
   });
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl">DNA Visual</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">Um retrato vivo e editável do que parece você <em>neste momento</em>. Não é diagnóstico nem verdade objetiva — sua identidade é fluida.</p>
-      </div>
+      <CabecalhoPagina
+        titulo="DNA Visual"
+        descricao={<>Um retrato vivo e editável do que parece você <em>neste momento</em>. Não é diagnóstico nem verdade objetiva — sua identidade é fluida.</>}
+      />
       {(q.data ?? 0) >= 10 && (
-        <div className="rounded-2xl border border-accent/50 bg-accent/10 p-4 text-sm">
+        <Aviso tom="info">
           Muita coisa mudou desde a última revisão ({q.data} novos sinais ou edições). Que tal <Link to="/dna" className="underline">atualizar seu resumo</Link>?
-        </div>
+        </Aviso>
       )}
       <nav className="flex flex-wrap gap-1 border-b pb-2">
         {TABS.map(([to, label]) => (

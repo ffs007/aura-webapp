@@ -28,7 +28,7 @@ export function QuotaChip({ tasks, label }: { tasks: string[]; label?: string })
     const usadas = dados.contagem[t] ?? 0;
     const restam = Math.max(0, limite - usadas);
     return restam > 0
-      ? `${label ? label + ': ' : ''}restam ${restam} de ${limite} grátis`
+      ? `${label ? label + ': ' : ''}${restam === 1 ? 'resta' : 'restam'} ${restam} de ${limite} grátis`
       : `${label ? label + ': ' : ''}grátis esgotado — ✦ Pass libera`;
   }).filter(Boolean);
   if (!linhas.length) return null;

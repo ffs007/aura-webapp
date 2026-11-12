@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Aviso } from '@/components/estados';
+import { FOCO } from '@/lib/design';
 import { enviarFeedback } from '@/lib/feedback.functions';
 
 const TIPOS: { v: 'critica' | 'sugestao' | 'duvida' | 'elogio'; l: string }[] = [
@@ -26,14 +28,16 @@ export function FeedbackButton() {
   const [texto, setTexto] = useState('');
   const [contato, setContato] = useState('');
   const [mandando, setMandando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
 
   async function mandar() {
     setMandando(true);
+    setErroEnvio('');
     try {
       await enviar({ data: { tipo, texto, ...(contato.trim() ? { contato: contato.trim() } : {}), rota: window.location.pathname } });
       toast.success('Recebido! A gente lê TUDO — crítica é ouro. 💛');
       setAberto(false); setTexto(''); setContato('');
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível enviar.'); } finally { setMandando(false); }
+    } catch (e) { setErroEnvio(e instanceof Error ? e.message : 'Não foi possível enviar.'); } finally { setMandando(false); }
   }
 
   return (
@@ -42,10 +46,9 @@ export function FeedbackButton() {
         onClick={() => setAberto(true)}
         title="Críticas, sugestões, dúvidas e elogios"
         aria-label="Abrir canal de opinião"
-        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2 text-sm shadow-soft backdrop-blur transition hover:bg-secondary print:hidden"
+        className={`fixed bottom-4 right-4 z-40 grid size-12 place-items-center rounded-full border bg-background/90 shadow-soft backdrop-blur transition hover:bg-secondary print:hidden ${FOCO}`}
       >
-        <MessageSquareHeart className="size-4 text-accent" />
-        Opinião
+        <MessageSquareHeart className="size-5 text-accent" />
       </button>
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent>
@@ -55,8 +58,10 @@ export function FeedbackButton() {
               {TIPOS.map((t) => (
                 <button
                   key={t.v}
+                  type="button"
+                  aria-pressed={tipo === t.v}
                   onClick={() => setTipo(t.v)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${tipo === t.v ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${FOCO} ${tipo === t.v ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
                 >
                   {t.l}
                 </button>
@@ -77,8 +82,16 @@ export function FeedbackButton() {
               value={contato}
               onChange={(e) => setContato(e.target.value)}
             />
+            {erroEnvio && (
+              <Aviso
+                tom="atencao"
+                acoes={<Button size="sm" variant="outline" disabled={mandando || texto.trim().length < 5} onClick={() => void mandar()}>Tentar novamente</Button>}
+              >
+                {erroEnvio}
+              </Aviso>
+            )}
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] text-muted-foreground">Pode mandar anônimo. Guardamos só o essencial.</p>
+              <p className="text-xs text-muted-foreground">Pode mandar anônimo. Guardamos só o essencial.</p>
               <Button size="sm" disabled={mandando || texto.trim().length < 5} onClick={() => void mandar()}>
                 {mandando ? <LoaderCircle className="size-4 animate-spin" /> : <MessageSquareHeart className="size-4" />}
                 Enviar

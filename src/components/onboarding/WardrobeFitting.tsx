@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Shirt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Cartao, CarregandoInline, EstadoVazio } from "@/components/estados";
+import { FOCO, TITULO_ITEM } from "@/lib/design";
 import { cn } from "@/lib/utils";
 import { BodyAvatar } from "./BodyAvatar";
 import { colorFromName, SIZE_TOPS, SIZE_BOTTOMS, PALETTE, type Data } from "@/lib/onboarding";
@@ -39,16 +43,22 @@ export function WardrobeFitting({ data, userId, set }: { data: Data; userId: str
   const fitMsg = (n: number) => (n === 0 ? "no seu tamanho" : n > 0 ? "mais solto" : "mais justo");
 
   return (
-    <section className="rounded-2xl border bg-card p-4">
-      <h2 className="text-2xl">Provador com seu Guarda-roupa</h2>
+    <Cartao compacto>
+      <h2 className={TITULO_ITEM}>Provador com seu Guarda-roupa</h2>
       <p className="mt-1 text-sm text-muted-foreground">Combine peças sobre o boneco e brinque com tamanhos e cores. É uma ilustração, não mostra o caimento real.</p>
       <div className="mt-4 grid gap-6 sm:grid-cols-[160px_1fr]">
         <div className="mx-auto h-72 w-40">
           <BodyAvatar data={data} outfit={{ top: colorOf("top"), bottom: colorOf("bottom"), layer: pick.layer || colors.layer ? colorOf("layer") ?? "#6b5a4e" : undefined, topFit, bottomFit }} />
         </div>
         <div className="space-y-4 text-sm">
-          {items === null ? <p className="text-muted-foreground">Carregando suas peças…</p> : items.length === 0 && (
-            <p className="rounded-lg bg-secondary p-3">Seu Guarda-roupa ainda está vazio. Teste com as cores abaixo ou <Link to="/roupas/armario" className="underline">cadastre peças</Link>.</p>
+          {items === null ? <CarregandoInline rotulo="Carregando suas peças…" /> : items.length === 0 && (
+            <EstadoVazio
+              compacto
+              icone={<Shirt />}
+              titulo="Seu Guarda-roupa ainda está vazio."
+              descricao="Teste com as cores abaixo."
+              acoes={<Button asChild size="sm" variant="outline"><Link to="/roupas/armario">Cadastrar peças</Link></Button>}
+            />
           )}
           {SLOTS.map(([slot, cat]) => {
             const list = (items ?? []).filter((x) => x.category === cat);
@@ -57,10 +67,10 @@ export function WardrobeFitting({ data, userId, set }: { data: Data; userId: str
                 <p className="font-medium">{cat}</p>
                 {list.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {slot === "layer" && <button onClick={() => setPick((p) => ({ ...p, layer: null }))} className={cn("rounded-full border px-2.5 py-1 text-xs", !pick.layer && "border-primary bg-primary text-primary-foreground")}>Sem</button>}
+                    {slot === "layer" && <button onClick={() => setPick((p) => ({ ...p, layer: null }))} aria-pressed={!pick.layer} className={cn("rounded-full border px-2.5 py-1 text-xs", FOCO, !pick.layer && "border-primary bg-primary text-primary-foreground")}>Sem</button>}
                     {list.map((it) => (
-                      <button key={it.id} onClick={() => { setPick((p) => ({ ...p, [slot]: it.id })); setColors((c) => ({ ...c, [slot]: null })); }}
-                        className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs", pick[slot] === it.id && "border-primary bg-primary text-primary-foreground")}>
+                      <button key={it.id} onClick={() => { setPick((p) => ({ ...p, [slot]: it.id })); setColors((c) => ({ ...c, [slot]: null })); }} aria-pressed={pick[slot] === it.id}
+                        className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs", FOCO, pick[slot] === it.id && "border-primary bg-primary text-primary-foreground")}>
                         <span className="h-3 w-3 rounded-full border" style={{ background: colorFromName(it.color) }} />{it.name}
                       </button>
                     ))}
@@ -68,8 +78,8 @@ export function WardrobeFitting({ data, userId, set }: { data: Data; userId: str
                 )}
                 <div className="mt-1.5 flex flex-wrap gap-1.5" aria-label={`Cor de ${cat}`}>
                   {PALETTE.map((c) => (
-                    <button key={c.value} title={c.label} aria-label={c.label} onClick={() => setColors((s) => ({ ...s, [slot]: c.color! }))}
-                      className={cn("h-6 w-6 rounded-full border-2", colors[slot] === c.color ? "border-primary ring-2 ring-primary/40" : "border-border")} style={{ background: c.color }} />
+                    <button key={c.value} title={c.label} aria-label={c.label} aria-pressed={colors[slot] === c.color} onClick={() => setColors((s) => ({ ...s, [slot]: c.color! }))}
+                      className={cn("h-6 w-6 rounded-full border-2", FOCO, colors[slot] === c.color ? "border-primary ring-2 ring-primary/40" : "border-border")} style={{ background: c.color }} />
                   ))}
                 </div>
               </div>
@@ -81,7 +91,7 @@ export function WardrobeFitting({ data, userId, set }: { data: Data; userId: str
           </div>
         </div>
       </div>
-    </section>
+    </Cartao>
   );
 }
 
@@ -90,9 +100,9 @@ function SizePick({ label, list, value, onChange, note, onSave }: { label: strin
     <div>
       <p className="font-medium">{label} <span className="font-normal text-muted-foreground">· {note}</span></p>
       <div className="mt-1 flex flex-wrap gap-1">
-        {list.map((s) => <button key={s} onClick={() => onChange(s)} className={cn("rounded-md border px-2 py-0.5 text-xs", value === s && "border-primary bg-primary text-primary-foreground")}>{s}</button>)}
+        {list.map((s) => <button key={s} onClick={() => onChange(s)} aria-pressed={value === s} className={cn("rounded-md border px-2 py-0.5 text-xs", FOCO, value === s && "border-primary bg-primary text-primary-foreground")}>{s}</button>)}
       </div>
-      {onSave && <button onClick={onSave} className="mt-1 text-xs underline">Usar {value} no meu perfil</button>}
+      {onSave && <button onClick={onSave} className={`mt-1 text-xs underline ${FOCO}`}>Usar {value} no meu perfil</button>}
     </div>
   );
 }

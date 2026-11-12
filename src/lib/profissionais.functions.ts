@@ -42,6 +42,28 @@ export const listarProfissionais = createServerFn({ method: 'POST' })
     return comDistancia satisfies Profissional[];
   });
 
+/** Item da listagem simples da aba "Buscar" (sem distância/geolocalização). */
+export type ProfissionalBusca = {
+  id: string; slug: string; nome: string; profissao: string;
+  nome_salao: string | null; verificado: boolean; bio: string | null;
+};
+
+/**
+ * Lista de profissionais ativos para a aba "Buscar" (busca por nome/salão e
+ * filtro de profissão são feitos na tela, sobre estes até 100 perfis).
+ */
+export const listarTodosProfissionais = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context: { supabase } }) => {
+    const { data, error } = await supabase.from('professionals')
+      .select('id,slug,nome,profissao,nome_salao,verificado,bio')
+      .eq('ativo', true)
+      .order('nome')
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ProfissionalBusca[];
+  });
+
 export const enviarBriefing = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .validator((d) => z.object({ professional_id: z.string().uuid(), package_id: z.string().uuid().optional(), modulo: z.string().max(40), titulo: z.string().min(1).max(120), texto: z.string().min(10).max(8000), foto_url: z.string().url().max(2000).optional() }).parse(d))
@@ -205,6 +227,27 @@ export type PerfilProfissional = {
   nome: string; profissao: string; nome_salao: string | null;
   whatsapp: string | null; instagram: string | null; bio: string | null; verificado: boolean; slug: string;
 };
+
+export type ProfissionalPublico = {
+  id: string; nome: string; profissao: string; nome_salao: string | null; verificado: boolean;
+};
+
+/**
+ * Profissional ativa a partir do slug da micropágina — alimenta a rota
+ * autenticada /briefing/$slug (quem clicou em "Enviar meu briefing" no link
+ * público e entrou/criou conta volta para cá com a profissional preservada).
+ */
+export const profissionalPorSlug = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/) }).parse(d))
+  .handler(async ({ data, context: { supabase } }) => {
+    const { data: p, error } = await supabase.from('professionals')
+      .select('id,nome,profissao,nome_salao,verificado')
+      .eq('slug', data.slug).eq('ativo', true).maybeSingle();
+    if (error) throw new Error('Não foi possível carregar a profissional agora. Tente novamente.');
+    if (!p) throw new Error('Profissional não encontrada. Este link pode ter mudado ou o perfil não está mais ativo.');
+    return p satisfies ProfissionalPublico;
+  });
 
 /** Micropágina pública /p/{slug} — SEM login (RLS expõe apenas profissionais ativos). */
 export const perfilProfissional = createServerFn({ method: 'POST' })

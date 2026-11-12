@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { LoaderCircle, Pencil, Plus, Star, Trash2, Upload } from 'lucide-react';
+import { LoaderCircle, Pencil, Plus, Star, Store, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { EstadoErro, EstadoVazio, EsqueletoLista } from '@/components/estados';
+import { CARTAO_COMPACTO, CARTAO_DESTAQUE, TITULO_SECAO } from '@/lib/design';
 import {
   listarCatalogoAdmin, salvarLoja, excluirLoja, salvarProduto, excluirProduto, importarCatalogo,
   type LojaAdmin, type ProdutoAdmin,
@@ -14,6 +16,9 @@ const FORM_PECA_VAZIO = {
   id: undefined as string | undefined, loja_id: '', titulo: '', descricao: '', categoria: '',
   cor: '', preco: '', url: '', imagem_url: '', tags: '', prioridade: false, ativo: true,
 };
+
+/** "1 peça" / "2 peças" — evita o feio "peça(s)". */
+const plural = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`;
 
 /**
  * Guarda-Roupa Real — painel de administração (Fatia B2+, PLANO-EXPANSAO):
@@ -25,6 +30,7 @@ export function ParceirosManager() {
   const salvarLojaFn = useServerFn(salvarLoja), excluirLojaFn = useServerFn(excluirLoja);
   const salvarPecaFn = useServerFn(salvarProduto), excluirPecaFn = useServerFn(excluirProduto), importarFn = useServerFn(importarCatalogo);
   const [lojas, setLojas] = useState<LojaAdmin[] | null>(null);
+  const [erroCarga, setErroCarga] = useState(false);
   const [formLoja, setFormLoja] = useState({ id: undefined as string | undefined, nome: '', site_url: '', ativo: true });
   const [formPeca, setFormPeca] = useState(FORM_PECA_VAZIO);
   const [salvandoL, setSalvandoL] = useState(false);
@@ -40,15 +46,16 @@ export function ParceirosManager() {
     setImportando(true); setResImport('');
     try {
       const r = await importarFn({ data: { csv, ...(lojaCsv ? { loja_id: lojaCsv } : { loja_nova: lojaNovaCsv.trim() }) } });
-      setResImport(`✅ ${r.criadas} peça(s) importada(s) · ${r.puladas} pulada(s) por já existirem${r.erros.length ? ` · ⚠️ ${r.erros.join(' · ')}` : ''}`);
-      toast.success(`${r.criadas} peças no catálogo!`);
+      setResImport(`✅ ${plural(r.criadas, 'peça importada', 'peças importadas')} · ${plural(r.puladas, 'pulada', 'puladas')} por já existirem${r.erros.length ? ` · ⚠️ ${r.erros.join(' · ')}` : ''}`);
+      toast.success(`${plural(r.criadas, 'peça no catálogo', 'peças no catálogo')}!`);
       setCsv('');
       await carregar();
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível importar.'); } finally { setImportando(false); }
   }
 
   async function carregar() {
-    try { setLojas(await listar()); } catch (e) { setLojas([]); toast.error(e instanceof Error ? e.message : 'Não foi possível carregar o catálogo.'); }
+    setErroCarga(false);
+    try { setLojas(await listar()); } catch { setErroCarga(true); setLojas([]); }
   }
 
   useEffect(() => { void carregar(); }, []);
@@ -110,11 +117,11 @@ export function ParceirosManager() {
   return (
     <section className="space-y-5">
       <div>
-        <h2 className="text-3xl">🛍️ Catálogo parceiro (Guarda-Roupa Real)</h2>
+        <h2 className={TITULO_SECAO}>🛍️ Catálogo parceiro (Guarda-Roupa Real)</h2>
         <p className="mt-1 text-sm text-muted-foreground">Lojas e peças que aparecem nas sugestões de roupa das clientes. Peça ⭐ <strong>patrocinada</strong> vem primeiro — é o espaço que a loja paga para ocupar.</p>
       </div>
 
-      <details className="space-y-3 rounded-xl border border-accent/40 bg-accent/5 p-4">
+      <details className={`space-y-3 ${CARTAO_DESTAQUE}`}>
         <summary className="cursor-pointer text-sm font-medium">📥 Importar catálogo em massa (CSV da loja)</summary>
         <p className="text-xs text-muted-foreground">A planilha que a loja já usa no Google Shopping entra direto (colunas title, link, price, image link…). Planilha simples também: título, categoria, cor, preço, url, imagem_url, tags. Peças com o mesmo link são puladas — pode importar de novo sem medo.</p>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -127,7 +134,7 @@ export function ParceirosManager() {
         <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
           <Upload className="size-4" />
           Escolher arquivo .csv do computador
-          <input type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={(e) => {
+          <input type="file" aria-label="Escolher arquivo CSV do catálogo" accept=".csv,text/csv,text/plain" className="hidden" onChange={(e) => {
             const arq = e.target.files?.[0];
             if (!arq) return;
             const fr = new FileReader();
@@ -144,7 +151,7 @@ export function ParceirosManager() {
         </div>
       </details>
 
-      <div className="space-y-3 rounded-xl border bg-card p-4">
+      <div className={`space-y-3 ${CARTAO_COMPACTO}`}>
         <p className="text-sm font-medium">{formLoja.id ? '✏️ Editando loja' : '➕ Nova loja'}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <Input aria-label="Nome da loja" placeholder="Nome da loja (ex.: C&A)" value={formLoja.nome} onChange={(e) => setFormLoja({ ...formLoja, nome: e.target.value })} />
@@ -159,7 +166,7 @@ export function ParceirosManager() {
         </div>
       </div>
 
-      <div className="space-y-3 rounded-xl border bg-card p-4">
+      <div className={`space-y-3 ${CARTAO_COMPACTO}`}>
         <p className="text-sm font-medium">{formPeca.id ? '✏️ Editando peça' : '➕ Nova peça'}</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <select aria-label="Loja da peça" className="rounded-md border bg-background p-2 text-sm" value={formPeca.loja_id} onChange={(e) => setFormPeca({ ...formPeca, loja_id: e.target.value })}>
@@ -187,18 +194,27 @@ export function ParceirosManager() {
         </div>
       </div>
 
-      {lojas === null && <p className="text-sm text-muted-foreground">Carregando lojas…</p>}
-      {lojas?.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma loja ainda. Cadastre a primeira no formulário acima.</p>}
+      {erroCarga && <EstadoErro titulo="Não foi possível carregar o catálogo" onTentarNovamente={() => void carregar()} />}
+      {lojas === null && !erroCarga && <EsqueletoLista itens={2} colunas={2} altura="h-32" />}
+      {lojas?.length === 0 && (
+        <EstadoVazio
+          compacto
+          icone={<Store className="size-5" />}
+          titulo="Nenhuma loja ainda"
+          descricao="Cadastre a primeira loja no formulário acima para as peças aparecerem nas sugestões das clientes."
+          acoes={<Button size="sm" variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Cadastrar primeira loja</Button>}
+        />
+      )}
       {lojas?.map((l) => (
-        <article key={l.id} className="space-y-3 rounded-xl border bg-card p-4">
+        <article key={l.id} className={`space-y-3 ${CARTAO_COMPACTO}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-sm font-medium">{l.nome} {!l.ativo && <span className="text-xs text-muted-foreground">· ⏸️ pausada</span>}</p>
-              <p className="text-xs text-muted-foreground">{l.produtos.length} peça(s){l.site_url ? ` · ${l.site_url}` : ''}</p>
+              <p className="text-xs text-muted-foreground">{plural(l.produtos.length, 'peça', 'peças')}{l.site_url ? ` · ${l.site_url}` : ''}</p>
             </div>
             <div className="flex gap-1">
-              <Button size="sm" variant="outline" title="Editar loja" onClick={() => { setFormLoja({ id: l.id, nome: l.nome, site_url: l.site_url ?? '', ativo: l.ativo }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><Pencil className="size-4" /></Button>
-              <Button size="sm" variant="outline" title="Excluir loja" onClick={() => { if (confirm(`Excluir ${l.nome} e suas ${l.produtos.length} peça(s)?`)) void excluirLojaFn({ data: { id: l.id } }).then(carregar).catch((e) => toast.error(e instanceof Error ? e.message : 'Não foi possível excluir.')); }}><Trash2 className="size-4" /></Button>
+              <Button size="sm" variant="outline" aria-label="Editar loja" title="Editar loja" onClick={() => { setFormLoja({ id: l.id, nome: l.nome, site_url: l.site_url ?? '', ativo: l.ativo }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><Pencil className="size-4" /></Button>
+              <Button size="sm" variant="outline" aria-label="Excluir loja" title="Excluir loja" onClick={() => { if (confirm(`Excluir ${l.nome} e suas ${plural(l.produtos.length, 'peça', 'peças')}?`)) void excluirLojaFn({ data: { id: l.id } }).then(carregar).catch((e) => toast.error(e instanceof Error ? e.message : 'Não foi possível excluir.')); }}><Trash2 className="size-4" /></Button>
               <Button size="sm" title="Nova peça nesta loja" onClick={() => { setFormPeca({ ...FORM_PECA_VAZIO, loja_id: l.id }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><Plus className="size-4" /> Peça</Button>
             </div>
           </div>
@@ -211,10 +227,10 @@ export function ParceirosManager() {
                     <p className="truncate text-xs text-muted-foreground">{p.categoria}{p.cor ? ` · ${p.cor}` : ''} · R$ {p.preco.toFixed(2)}</p>
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" disabled={ocupado === p.id} title={p.prioridade > 0 ? 'Remover patrocínio' : 'Marcar como patrocinada'} onClick={() => void alternarPeca(p, 'prioridade')}><Star className={`size-4 ${p.prioridade > 0 ? 'fill-accent text-accent' : ''}`} /></Button>
-                    <Button size="sm" variant="ghost" disabled={ocupado === p.id} title={p.ativo ? 'Pausar peça' : 'Reativar peça'} onClick={() => void alternarPeca(p, 'ativo')}>{p.ativo ? '⏸️' : '▶️'}</Button>
-                    <Button size="sm" variant="ghost" title="Editar peça" onClick={() => editarPeca(p)}><Pencil className="size-4" /></Button>
-                    <Button size="sm" variant="ghost" title="Excluir peça" onClick={() => { if (confirm(`Excluir "${p.titulo}"?`)) void excluirPecaFn({ data: { id: p.id } }).then(carregar).catch((e) => toast.error(e instanceof Error ? e.message : 'Não foi possível excluir.')); }}><Trash2 className="size-4" /></Button>
+                    <Button size="sm" variant="ghost" disabled={ocupado === p.id} aria-label={p.prioridade > 0 ? 'Remover patrocínio' : 'Marcar como patrocinada'} title={p.prioridade > 0 ? 'Remover patrocínio' : 'Marcar como patrocinada'} onClick={() => void alternarPeca(p, 'prioridade')}><Star className={`size-4 ${p.prioridade > 0 ? 'fill-accent text-accent' : ''}`} /></Button>
+                    <Button size="sm" variant="ghost" disabled={ocupado === p.id} aria-label={p.ativo ? 'Pausar peça' : 'Reativar peça'} title={p.ativo ? 'Pausar peça' : 'Reativar peça'} onClick={() => void alternarPeca(p, 'ativo')}>{p.ativo ? '⏸️' : '▶️'}</Button>
+                    <Button size="sm" variant="ghost" aria-label="Editar peça" title="Editar peça" onClick={() => editarPeca(p)}><Pencil className="size-4" /></Button>
+                    <Button size="sm" variant="ghost" aria-label="Excluir peça" title="Excluir peça" onClick={() => { if (confirm(`Excluir "${p.titulo}"?`)) void excluirPecaFn({ data: { id: p.id } }).then(carregar).catch((e) => toast.error(e instanceof Error ? e.message : 'Não foi possível excluir.')); }}><Trash2 className="size-4" /></Button>
                   </div>
                 </li>
               ))}

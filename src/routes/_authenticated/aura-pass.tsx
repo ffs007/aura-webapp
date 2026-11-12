@@ -2,6 +2,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
+import { Aviso, CabecalhoPagina, Cartao } from '@/components/estados';
+import { TITULO_ITEM, TITULO_SECAO } from '@/lib/design';
 import { passStatus, portalUrl, createCheckout, AURA_PASS_PRECO, type PassStatus } from '@/lib/stripe.functions';
 
 export const Route = createFileRoute('/_authenticated/aura-pass')({
@@ -32,7 +34,7 @@ function Page() {
       const url = await createCheckout({ data: { app_url: window.location.origin } });
       window.location.href = url;
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Não foi possível iniciar o pagamento.');
+      setErr('Não foi possível iniciar o pagamento. Tente de novo.');
       setBusy(false);
     }
   };
@@ -42,41 +44,41 @@ function Page() {
       const url = await portalUrl({ data: { app_url: window.location.origin } });
       window.location.href = url;
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Não foi possível abrir o gerenciamento.');
+      setErr('Não foi possível abrir o gerenciamento da assinatura. Tente de novo.');
       setBusy(false);
     }
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <span className="text-sm text-accent">Assinatura</span>
-        <h1 className="mt-2 text-5xl">Aura <em>Pass</em></h1>
-        <p className="mt-3 text-muted-foreground">Mais imagens, sem trava — no app e no site, com a mesma conta.</p>
-      </div>
+      <CabecalhoPagina
+        sobretitulo="Assinatura"
+        titulo={<>Aura <em>Pass</em></>}
+        descricao="Mais imagens, sem trava — no app e no site, com a mesma conta."
+      />
 
       {checkout === 'success' && (
-        <p className="rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+        <Aviso tom="sucesso">
           Recebemos seu pagamento! Estamos ativando seu Pass — deve aparecer como ativo aqui em alguns segundos.
-        </p>
+        </Aviso>
       )}
       {checkout === 'cancel' && (
-        <p className="rounded-lg border p-4 text-sm text-muted-foreground">A assinatura não foi concluída. Você pode tentar quando quiser.</p>
+        <Aviso tom="neutro">A assinatura não foi concluída. Você pode tentar quando quiser.</Aviso>
       )}
 
       {status?.active ? (
-        <section className="space-y-4 rounded-lg border bg-card p-6">
-          <p className="text-2xl">✨ Aura Pass ativo</p>
+        <Cartao className="space-y-4">
+          <p className={TITULO_ITEM}>✨ Aura Pass ativo</p>
           <dl className="space-y-1 text-sm text-muted-foreground">
             {status.purchased_at && <div>Ativo desde {new Date(status.purchased_at).toLocaleDateString('pt-BR')}</div>}
             <div>{status.expires_at ? `Válido até ${new Date(status.expires_at).toLocaleDateString('pt-BR')}` : 'Renovação automática mensal · cancele quando quiser'}</div>
           </dl>
           <Button onClick={gerenciar} disabled={busy}>Gerenciar assinatura</Button>
-        </section>
+        </Cartao>
       ) : (
-        <section className="space-y-5 rounded-lg border bg-card p-6">
+        <Cartao className="space-y-5">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-3xl">Tudo liberado</h2>
+            <h2 className={TITULO_SECAO}>Tudo liberado</h2>
             <p className="text-2xl font-semibold">{AURA_PASS_PRECO}</p>
           </div>
           <ul className="space-y-2 text-sm">
@@ -87,10 +89,10 @@ function Page() {
           </ul>
           <p className="text-xs text-muted-foreground">Grátis para começar: 5 imagens por conta. Pix ou cartão de crédito, pagamento processado pelo Stripe.</p>
           <Button onClick={assinar} disabled={busy} size="lg">{busy ? 'Abrindo pagamento…' : `Assinar · ${AURA_PASS_PRECO}`}</Button>
-        </section>
+        </Cartao>
       )}
 
-      {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+      {err && <div role="alert"><Aviso tom="atencao">{err}</Aviso></div>}
       <p className="text-sm text-muted-foreground"><Link to="/settings" className="underline">Voltar para Configurações</Link></p>
     </div>
   );

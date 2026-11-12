@@ -1,4 +1,6 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { CabecalhoPagina } from "@/components/estados";
+import { PILHA_PAGINA } from "@/lib/design";
 import { CLOTHING_NOTE } from "@/lib/clothing";
 
 export const Route = createFileRoute("/_authenticated/roupas")({
@@ -11,19 +13,24 @@ const TABS = [
 ] as const;
 
 function Layout() {
+  // Telas de detalhe já têm o próprio h1; o layout não duplica o título.
+  const caminho = useRouterState({ select: (s) => s.location.pathname });
+  const ehDetalhe = caminho.startsWith("/roupas/look/");
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-5xl">Roupas</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">Use melhor o que você já tem, monte looks para a vida real e compre só o que faz sentido.</p>
-      </div>
+    <div className={PILHA_PAGINA}>
+      {!ehDetalhe && (
+        <CabecalhoPagina
+          titulo="Roupas"
+          descricao="Use melhor o que você já tem, monte looks para a vida real e compre só o que faz sentido."
+        />
+      )}
       <nav className="flex gap-1 overflow-x-auto border-b pb-2 print:hidden">
         {TABS.map(([to, label]) => (
           <Link key={to} to={to} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary" activeProps={{ className: "bg-primary text-primary-foreground hover:bg-primary" }}>{label}</Link>
         ))}
       </nav>
       <Outlet />
-      <p className="border-t pt-4 text-xs text-muted-foreground">{CLOTHING_NOTE} Provador virtual fotorrealista: [FORA DO ESCOPO DOS CONECTORES LOVABLE].</p>
+      <p className="border-t pt-4 text-xs text-muted-foreground">{CLOTHING_NOTE} O provador virtual fotorrealista está no nosso roteiro e ainda não faz parte desta versão.</p>
     </div>
   );
 }

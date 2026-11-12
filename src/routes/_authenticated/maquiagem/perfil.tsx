@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EsqueletoDetalhe } from "@/components/estados";
 import { Confirm } from "@/components/Confirm";
+import { CARTAO_COMPACTO, FOCO, PILHA_PAGINA, TITULO_SECAO } from "@/lib/design";
 import { logEvent } from "@/lib/aura";
 import { SKILL_LABEL } from "@/lib/makeup";
 import { cn } from "@/lib/utils";
@@ -37,41 +38,41 @@ function Profile() {
   const split = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
   async function save() {
     const { error } = await supabase.from("makeup_profiles").upsert({ user_id: user.id, ...f, avoid_ingredients: split(f.avoid_ingredients), products_used: split(f.products_used), updated_at: new Date().toISOString() });
-    if (error) { toast.error("Não foi possível salvar o perfil."); return; }
+    if (error) { toast.error("Não foi possível salvar o perfil. Tente de novo."); return; }
     await logEvent(q.data ? "makeup_profile_updated" : "profile_created", { module: "makeup" });
     toast.success("Perfil de pele salvo");
     qc.invalidateQueries();
   }
   async function clearAllergy() {
     const { error } = await supabase.from("makeup_profiles").update({ allergies: null, avoid_ingredients: [], skin_conditions: null }).eq("user_id", user.id);
-    if (error) { toast.error("Não foi possível excluir."); return; }
+    if (error) { toast.error("Não foi possível excluir os dados. Tente de novo."); return; }
     await logEvent("data_deleted", { scope: "allergy_data" });
     toast.success("Dados de alergia excluídos");
     qc.invalidateQueries();
   }
 
-  if (q.isLoading) return <Skeleton className="h-96 rounded-2xl" />;
-  const chip = (val: string, cur: string, k: keyof F) => <button key={val} onClick={() => setF({ ...f, [k]: val })} className={cn("rounded-full border px-3 py-1 text-sm", cur === val ? "border-primary bg-primary text-primary-foreground" : "bg-card")}>{val}</button>;
+  if (q.isLoading) return <EsqueletoDetalhe />;
+  const chip = (val: string, cur: string, k: keyof F) => <button key={val} onClick={() => setF({ ...f, [k]: val })} aria-pressed={cur === val} className={cn("rounded-full border px-3 py-1 text-sm", FOCO, cur === val ? "border-primary bg-primary text-primary-foreground" : "bg-card")}>{val}</button>;
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className={cn("max-w-3xl", PILHA_PAGINA)}>
       <section className="space-y-3"><Label>Tipo de pele</Label><div className="flex flex-wrap gap-2">{SKINS.map((s) => chip(s, f.skin_type, "skin_type"))}</div></section>
-      <section className="space-y-4 rounded-2xl border bg-card p-5">
-        <h2 className="text-2xl">Alergias e sensibilidade</h2>
+      <section className={cn("space-y-4", CARTAO_COMPACTO)}>
+        <h2 className={TITULO_SECAO}>Alergias e sensibilidade</h2>
         <p className="text-sm text-muted-foreground">Usado só para evitar produtos. Se você tem alergias, pele sensível ou alguma condição de pele, procure um dermatologista antes de testar algo novo.</p>
-        <div className="space-y-2"><Label>Histórico de alergias</Label><Textarea rows={2} value={f.allergies} onChange={(e) => setF({ ...f, allergies: e.target.value })} placeholder="ex.: reação a fragrância em base" /></div>
-        <div className="space-y-2"><Label>Ingredientes a evitar (separe por vírgula)</Label><Input value={f.avoid_ingredients} onChange={(e) => setF({ ...f, avoid_ingredients: e.target.value })} placeholder="ex.: fragrância, álcool, níquel" /></div>
-        <div className="space-y-2"><Label>Condições de pele (opcional)</Label><Input value={f.skin_conditions} onChange={(e) => setF({ ...f, skin_conditions: e.target.value })} placeholder="ex.: rosácea, dermatite" /></div>
+        <div className="space-y-2"><Label htmlFor="maq-perfil-alergias">Histórico de alergias</Label><Textarea id="maq-perfil-alergias" rows={2} value={f.allergies} onChange={(e) => setF({ ...f, allergies: e.target.value })} placeholder="ex.: reação a fragrância em base" /></div>
+        <div className="space-y-2"><Label htmlFor="maq-perfil-evitar">Ingredientes a evitar (separe por vírgula)</Label><Input id="maq-perfil-evitar" value={f.avoid_ingredients} onChange={(e) => setF({ ...f, avoid_ingredients: e.target.value })} placeholder="ex.: fragrância, álcool, níquel" /></div>
+        <div className="space-y-2"><Label htmlFor="maq-perfil-condicoes">Condições de pele (opcional)</Label><Input id="maq-perfil-condicoes" value={f.skin_conditions} onChange={(e) => setF({ ...f, skin_conditions: e.target.value })} placeholder="ex.: rosácea, dermatite" /></div>
         {q.data && <Confirm label="Excluir dados de alergia" desc="Alergias, ingredientes a evitar e condições de pele serão apagados." onYes={clearAllergy} />}
       </section>
-      <section className="space-y-3"><Label>Produtos que já usa (separe por vírgula)</Label><Input value={f.products_used} onChange={(e) => setF({ ...f, products_used: e.target.value })} placeholder="ex.: protetor com cor, máscara, lip balm" /></section>
+      <section className="space-y-3"><Label htmlFor="maq-perfil-produtos">Produtos que já usa (separe por vírgula)</Label><Input id="maq-perfil-produtos" value={f.products_used} onChange={(e) => setF({ ...f, products_used: e.target.value })} placeholder="ex.: protetor com cor, máscara, lip balm" /></section>
       <section className="space-y-3"><Label>Acabamento preferido</Label><div className="flex flex-wrap gap-2">{FINISHES.map((s) => chip(s, f.finish, "finish"))}</div></section>
       <section className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-2"><Label>Nível de habilidade: {SKILL_LABEL[f.skill]}</Label><Slider min={1} max={5} step={1} value={[f.skill]} onValueChange={([v]) => setF({ ...f, skill: v ?? 2 })} /></div>
-        <div className="space-y-2"><Label>Tempo disponível: {f.time_minutes} min</Label><Slider min={2} max={60} step={1} value={[f.time_minutes]} onValueChange={([v]) => setF({ ...f, time_minutes: v ?? 10 })} /></div>
+        <div className="space-y-2"><Label>Nível de habilidade: {SKILL_LABEL[f.skill]}</Label><Slider aria-label="Nível de habilidade com maquiagem (1 a 5)" min={1} max={5} step={1} value={[f.skill]} onValueChange={([v]) => setF({ ...f, skill: v ?? 2 })} /></div>
+        <div className="space-y-2"><Label>Tempo disponível: {f.time_minutes} min</Label><Slider aria-label="Tempo disponível para maquiagem (2 a 60 minutos)" min={2} max={60} step={1} value={[f.time_minutes]} onValueChange={([v]) => setF({ ...f, time_minutes: v ?? 10 })} /></div>
       </section>
-      <section className="space-y-2"><Label>Orçamento</Label><Input value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} placeholder="ex.: até R$ 150 no total" /></section>
-      <section className="space-y-2"><Label>Referências</Label><Textarea rows={2} value={f.references_text} onChange={(e) => setF({ ...f, references_text: e.target.value })} placeholder="pessoas, fotos, estilos que você admira" /></section>
+      <section className="space-y-2"><Label htmlFor="maq-perfil-orcamento">Orçamento</Label><Input id="maq-perfil-orcamento" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} placeholder="ex.: até R$ 150 no total" /></section>
+      <section className="space-y-2"><Label htmlFor="maq-perfil-referencias">Referências</Label><Textarea id="maq-perfil-referencias" rows={2} value={f.references_text} onChange={(e) => setF({ ...f, references_text: e.target.value })} placeholder="pessoas, fotos, estilos que você admira" /></section>
       <Button size="lg" onClick={save}>Salvar perfil de pele</Button>
     </div>
   );

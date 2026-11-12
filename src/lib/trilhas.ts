@@ -59,6 +59,24 @@ export const TRILHAS: Record<TrilhaKey, TrilhaDef> = {
 export const TODAS_TRILHAS: TrilhaKey[] = ["visual", "cabelo", "estilo", "barbearia"];
 
 const STORAGE_KEY = "aura.trilhas";
+const DISMISS_KEY = "aura.trilhas.dispensado";
+
+/** Lembra que a pessoa optou por "Agora não" — evita o modal voltar a cada navegação. */
+export function trilhasDispensadas(): boolean {
+  try {
+    return localStorage.getItem(DISMISS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function dispensarTrilhas() {
+  try {
+    localStorage.setItem(DISMISS_KEY, "1");
+  } catch {
+    // sem persistência: o modal pode voltar na próxima visita
+  }
+}
 
 export function lerTrilhas(): TrilhaKey[] {
   try {
@@ -74,6 +92,7 @@ export function lerTrilhas(): TrilhaKey[] {
 export function salvarTrilhas(trilhas: TrilhaKey[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trilhas));
+    localStorage.removeItem(DISMISS_KEY);
     window.dispatchEvent(new CustomEvent("aura:trilhas"));
   } catch {
     // sem persistência: escolha vale só para a sessão atual do componente
@@ -87,10 +106,15 @@ export const LINKS_FIXOS: [string, string][] = [
   ["/dna", "DNA Visual"],
   ["/compare", "Comparar"],
   ["/export", "Exportar"],
+  ["/profissionais", "Profissionais"],
   ["/settings", "Configurações"],
 ];
 
 export function linksVisiveis(trilhas: TrilhaKey[]): [string, string][] {
   const extras = trilhas.flatMap((t) => TRILHAS[t].links);
-  return [...LINKS_FIXOS.slice(0, 2), ...extras, ...LINKS_FIXOS.slice(2)];
+  const todos = [...LINKS_FIXOS.slice(0, 2), ...extras, ...LINKS_FIXOS.slice(2)];
+  // Barbearia e Cabelo apontam para /cabelo: sem deduplicar, o menu mostra o
+  // mesmo link duas vezes e o React acusa chave repetida.
+  const vistos = new Set<string>();
+  return todos.filter(([to]) => (vistos.has(to) ? false : (vistos.add(to), true)));
 }

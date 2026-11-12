@@ -39,23 +39,46 @@ export const interpretJsonSchema = {
 
 /** Prompt determinístico para o modelo de imagem — entidades explícitas + negativas obrigatórias. */
 export function compileTattooPrompt(b: TattooBrief): string {
-  const onde = [b.local_corpo, b.lateralidade !== "nao_se_aplica" ? `lado ${b.lateralidade}` : null, b.tamanho]
+  // Campos editáveis pelo usuário (local, estilo, elementos) viram texto do
+  // prompt: removemos pontuação que poderia funcionar como instrução e limitamos
+  // o tamanho, para o local não "ensinar" o modelo a escrever outra coisa.
+  const limpar = (v?: string) => (v ?? "").replace(/[;\n\r"'`]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+  const local = limpar(b.local_corpo);
+  const estilo = limpar(b.estilo);
+  const elementos = b.elementos.map((e) => limpar(e)).filter(Boolean).slice(0, 8);
+  const onde = [local, b.lateralidade !== "nao_se_aplica" ? `lado ${b.lateralidade}` : null, b.tamanho]
     .filter(Boolean).join(" · ");
+  const noCorpo = b.preview === "no_corpo" && !!local;
+  const temTexto = b.tipo === "lettering" || (b.tipo === "composicao" && !!b.texto);
   const partes: string[] = [];
-  partes.push(b.preview === "no_corpo" && b.local_corpo
-    ? `Fotografia realista de PRÉVIA de tatuagem aplicada em ${onde} de pessoa adulta fictícia. Enquadramento fechado na região citada, pele natural, curvatura e perspectiva reais da área, luz suave de estúdio.`
-    : "Ilustração do conceito de tatuagem isolado em folha branca, sem pessoa, sem corpo, aplicação futura a decidir com o tatuador.");
+  if (noCorpo) {
+    partes.push(
+      `Fotografia realista de uma tatuagem já aplicada em ${onde}, em pessoa adulta fictícia. ` +
+      `Enquadramento bem fechado, mostrando apenas ${local} e o entorno imediato — não mostrar o corpo inteiro, o rosto inteiro nem outras regiões. ` +
+      `A tatuagem está exatamente em ${local}${b.lateralidade !== "nao_se_aplica" ? ` (lado ${b.lateralidade})` : ""}: não deslocar para a região vizinha (antebraço não é braço; braço não é antebraço; ombro não é braço). ` +
+      `Pele natural, pelos finos, curvatura e perspectiva reais da região, luz suave de estúdio.`,
+    );
+  } else {
+    partes.push("Ilustração do desenho de tatuagem isolado em folha branca, sem pessoa, sem corpo, para decidir a aplicação com o tatuador.");
+  }
   if (b.tipo === "lettering" && b.texto) {
     const linhas = b.texto.split("\\n").join(" / ");
-    partes.push(`O ELEMENTO PRINCIPAL É A ESCRITA: reproduza EXATAMENTE o texto "${linhas}" — ortografia, acentos (ç ã õ é í), maiúsculas/minúsculas e quebras de linha idênticas ao pedido. Tipografia: ${b.fonte_estilo ?? "coerente com o estilo pedido"}, traço limpo e legível. As palavras são o próprio objeto da tatuagem.`);
+    partes.push(
+      `O elemento principal é a escrita: reproduza exatamente o texto "${linhas}" — ortografia, acentos, maiúsculas/minúsculas e quebras de linha idênticas. Tipografia: ${b.fonte_estilo ?? "coerente com o estilo pedido"}, traço limpo e legível. Nenhuma outra palavra pode aparecer na imagem.`,
+    );
   } else if (b.tipo === "simbolo") {
-    partes.push(`Elemento principal: ${b.elementos[0] ?? "símbolo pedido"}. Sem escrita, sem letras decorativas não solicitadas.`);
+    partes.push(`Elemento principal: ${elementos[0] ?? "o símbolo pedido"}. Sem escrita, sem letras e sem números no desenho.`);
   } else {
-    partes.push(`Composição com: ${b.elementos.join(", ")}.${b.texto ? ` Inclui a escrita exata "${b.texto}" com acentos preservados.` : ""}`);
+    partes.push(`Composição com: ${elementos.join(", ")}.${b.texto ? ` Inclui a escrita exata "${b.texto}" com acentos preservados.` : ""}`);
   }
-  if (b.estilo) partes.push(`Estilo de tatuagem: ${b.estilo}.`);
-  if (b.elementos.length && b.tipo !== "simbolo") partes.push(`Elementos permitidos na cena: apenas ${b.elementos.join(", ")} e a região do corpo citada.`);
-  partes.push("PROIBIDO expressamente: substituir texto por símbolo, animal, ornamento ou pictograma; traduzir, abreviar ou reescrever palavras; espelhar a lateralidade (trocar esquerda/direita); adicionar dedos, orelhas ou membros extras; marcas d'água; texto de fundo; sobreposição plástica de adesivo; alterar o estilo pedido.");
+  if (estilo) partes.push(`Estilo de tatuagem: ${estilo}.`);
+  if (elementos.length && b.tipo !== "simbolo") partes.push(`Elementos permitidos na cena: apenas ${elementos.join(", ")} e a região do corpo citada.`);
+  if (temTexto) {
+    partes.push("Não adicionar legendas, assinaturas, palavras soltas, marcas d'água ou qualquer texto além do pedido.");
+  } else {
+    partes.push("A imagem não contém nenhuma palavra, letra, número, legenda ou assinatura escrita: o desenho é só gráfico, sem texto de qualquer tipo.");
+  }
+  partes.push("Regras obrigatórias: não substituir texto pedido por símbolo; não traduzir, abreviar ou reescrever palavras; não espelhar a lateralidade; não adicionar dedos, orelhas ou membros extras; não usar marcas d'água nem texto de fundo; não simular sobreposição plástica de adesivo; não alterar o estilo pedido.");
   partes.push("Referência visual de conceito, não prova virtual. Não retratar pessoas reais.");
   return partes.join(" ");
 }

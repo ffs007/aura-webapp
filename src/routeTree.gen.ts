@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAuraPassRouteImport } from './routes/_authenticated/aura-pass'
 import { Route as AuthenticatedBarbaRouteImport } from './routes/_authenticated/barba'
@@ -35,6 +36,7 @@ import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedTatuagemRouteRouteImport } from './routes/_authenticated/tatuagem/route'
 import { Route as ApiReferenceImageRouteImport } from './routes/api/reference-image'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
+import { Route as AuthenticatedBriefingSlugRouteImport } from './routes/_authenticated/briefing.$slug'
 import { Route as AuthenticatedCabeloIndexRouteImport } from './routes/_authenticated/cabelo/index'
 import { Route as AuthenticatedCabeloAlertasRouteImport } from './routes/_authenticated/cabelo/alertas'
 import { Route as AuthenticatedCabeloGerarRouteImport } from './routes/_authenticated/cabelo/gerar'
@@ -92,6 +94,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -215,6 +222,12 @@ const PSlugRoute = PSlugRouteImport.update({
   path: '/p/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBriefingSlugRoute =
+  AuthenticatedBriefingSlugRouteImport.update({
+    id: '/briefing/$slug',
+    path: '/briefing/$slug',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCabeloIndexRoute =
   AuthenticatedCabeloIndexRouteImport.update({
     id: '/',
@@ -480,6 +493,7 @@ const AuthenticatedTatuagemPlanoIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/cabelo': typeof AuthenticatedCabeloRouteRouteWithChildren
   '/dna': typeof AuthenticatedDnaRouteRouteWithChildren
   '/maquiagem': typeof AuthenticatedMaquiagemRouteRouteWithChildren
@@ -503,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
   '/p/$slug': typeof PSlugRoute
+  '/briefing/$slug': typeof AuthenticatedBriefingSlugRoute
   '/cabelo/alertas': typeof AuthenticatedCabeloAlertasRoute
   '/cabelo/gerar': typeof AuthenticatedCabeloGerarRoute
   '/cabelo/perfil': typeof AuthenticatedCabeloPerfilRoute
@@ -551,6 +566,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/aura-pass': typeof AuthenticatedAuraPassRoute
   '/barba': typeof AuthenticatedBarbaRoute
@@ -569,6 +585,7 @@ export interface FileRoutesByTo {
   '/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
   '/p/$slug': typeof PSlugRoute
+  '/briefing/$slug': typeof AuthenticatedBriefingSlugRoute
   '/cabelo/alertas': typeof AuthenticatedCabeloAlertasRoute
   '/cabelo/gerar': typeof AuthenticatedCabeloGerarRoute
   '/cabelo/perfil': typeof AuthenticatedCabeloPerfilRoute
@@ -619,6 +636,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/_authenticated/cabelo': typeof AuthenticatedCabeloRouteRouteWithChildren
   '/_authenticated/dna': typeof AuthenticatedDnaRouteRouteWithChildren
   '/_authenticated/maquiagem': typeof AuthenticatedMaquiagemRouteRouteWithChildren
@@ -642,6 +660,7 @@ export interface FileRoutesById {
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
   '/p/$slug': typeof PSlugRoute
+  '/_authenticated/briefing/$slug': typeof AuthenticatedBriefingSlugRoute
   '/_authenticated/cabelo/alertas': typeof AuthenticatedCabeloAlertasRoute
   '/_authenticated/cabelo/gerar': typeof AuthenticatedCabeloGerarRoute
   '/_authenticated/cabelo/perfil': typeof AuthenticatedCabeloPerfilRoute
@@ -692,6 +711,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/redefinir-senha'
     | '/cabelo'
     | '/dna'
     | '/maquiagem'
@@ -715,6 +735,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/reference-image'
     | '/p/$slug'
+    | '/briefing/$slug'
     | '/cabelo/alertas'
     | '/cabelo/gerar'
     | '/cabelo/perfil'
@@ -763,6 +784,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/redefinir-senha'
     | '/admin'
     | '/aura-pass'
     | '/barba'
@@ -781,6 +803,7 @@ export interface FileRouteTypes {
     | '/studio'
     | '/api/reference-image'
     | '/p/$slug'
+    | '/briefing/$slug'
     | '/cabelo/alertas'
     | '/cabelo/gerar'
     | '/cabelo/perfil'
@@ -830,6 +853,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/redefinir-senha'
     | '/_authenticated/cabelo'
     | '/_authenticated/dna'
     | '/_authenticated/maquiagem'
@@ -853,6 +877,7 @@ export interface FileRouteTypes {
     | '/_authenticated/studio'
     | '/api/reference-image'
     | '/p/$slug'
+    | '/_authenticated/briefing/$slug'
     | '/_authenticated/cabelo/alertas'
     | '/_authenticated/cabelo/gerar'
     | '/_authenticated/cabelo/perfil'
@@ -903,6 +928,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   ApiReferenceImageRoute: typeof ApiReferenceImageRoute
   PSlugRoute: typeof PSlugRoute
 }
@@ -928,6 +954,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -1090,6 +1123,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/p/$slug'
       preLoaderRoute: typeof PSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/briefing/$slug': {
+      id: '/_authenticated/briefing/$slug'
+      path: '/briefing/$slug'
+      fullPath: '/briefing/$slug'
+      preLoaderRoute: typeof AuthenticatedBriefingSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cabelo/': {
       id: '/_authenticated/cabelo/'
@@ -1555,6 +1595,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRetratoRoute: typeof AuthenticatedRetratoRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStudioRoute: typeof AuthenticatedStudioRoute
+  AuthenticatedBriefingSlugRoute: typeof AuthenticatedBriefingSlugRoute
   AuthenticatedJornadaDiarioRoute: typeof AuthenticatedJornadaDiarioRoute
   AuthenticatedJornadaGaleriaRoute: typeof AuthenticatedJornadaGaleriaRoute
   AuthenticatedJornadaLinhaDoTempoRoute: typeof AuthenticatedJornadaLinhaDoTempoRoute
@@ -1589,6 +1630,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRetratoRoute: AuthenticatedRetratoRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStudioRoute: AuthenticatedStudioRoute,
+  AuthenticatedBriefingSlugRoute: AuthenticatedBriefingSlugRoute,
   AuthenticatedJornadaDiarioRoute: AuthenticatedJornadaDiarioRoute,
   AuthenticatedJornadaGaleriaRoute: AuthenticatedJornadaGaleriaRoute,
   AuthenticatedJornadaLinhaDoTempoRoute: AuthenticatedJornadaLinhaDoTempoRoute,
@@ -1607,6 +1649,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  RedefinirSenhaRoute: RedefinirSenhaRoute,
   ApiReferenceImageRoute: ApiReferenceImageRoute,
   PSlugRoute: PSlugRoute,
 }

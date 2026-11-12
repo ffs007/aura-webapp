@@ -1,8 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { History } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { EstadoErro, EstadoVazio, EsqueletoLista } from "@/components/estados";
+import { FOCO, META } from "@/lib/design";
 import { ENTRY_MODES, fmtDateTime } from "@/lib/aura";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +33,14 @@ function Timeline() {
       return data;
     },
   });
-  if (q.isLoading) return <Skeleton className="h-64 rounded-2xl" />;
-  if (q.error) return <p className="text-destructive">Não foi possível carregar a linha do tempo.</p>;
+  if (q.isLoading) return <EsqueletoLista itens={5} colunas={1} altura="h-16" />;
+  if (q.error) return (
+    <EstadoErro
+      titulo="Não foi possível carregar a linha do tempo."
+      onTentarNovamente={() => void q.refetch()}
+      recarregando={q.isFetching}
+    />
+  );
   const list = (q.data ?? []).filter((e) => {
     const m = (e.meta as { module?: string })?.module;
     if (mod === "all") return true;
@@ -40,8 +49,16 @@ function Timeline() {
   });
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">{MODS.map(([k, l]) => <button key={k} onClick={() => setMod(k)} className={cn("rounded-full px-3 py-1 text-sm", mod === k ? "bg-primary text-primary-foreground" : "bg-secondary")}>{l}</button>)}</div>
-      {!list.length ? <p className="text-muted-foreground">Nenhum sinal ainda. Reaja às sugestões, dê feedback ou edite suas preferências.</p> : (
+      <div className="flex flex-wrap gap-2">{MODS.map(([k, l]) => <button key={k} onClick={() => setMod(k)} aria-pressed={mod === k} className={cn("rounded-full px-3 py-1 text-sm", FOCO, mod === k ? "bg-primary text-primary-foreground" : "bg-secondary")}>{l}</button>)}</div>
+      {!list.length ? (
+        <EstadoVazio
+          compacto
+          icone={<History />}
+          titulo="Nenhum sinal ainda"
+          descricao="Reaja às sugestões, dê feedback ou edite suas preferências."
+          acoes={<Button asChild size="sm" variant="outline"><Link to="/dna/preferencias">Editar preferências</Link></Button>}
+        />
+      ) : (
         <ol className="relative space-y-4 border-l pl-6">
           {list.map((e) => {
             const meta = e.meta as { module?: string; field?: string; scope?: string };
@@ -50,7 +67,7 @@ function Timeline() {
               <li key={e.id} className="relative">
                 <span className="absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full bg-accent" />
                 <div className="text-sm">{LABEL[e.event] ?? e.event}{modLabel && <span className="text-muted-foreground"> · {modLabel}</span>}{meta.field && <span className="text-muted-foreground"> · {meta.field}</span>}{meta.scope && <span className="text-muted-foreground"> · {meta.scope}</span>}</div>
-                <div className="text-xs text-muted-foreground">{fmtDateTime(e.created_at)}</div>
+                <div className={META}>{fmtDateTime(e.created_at)}</div>
               </li>
             );
           })}

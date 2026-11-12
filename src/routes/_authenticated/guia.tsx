@@ -1,5 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
+import { CabecalhoPagina } from '@/components/estados';
+import { CARTAO, TITULO_ITEM } from '@/lib/design';
+import { GLOSSARIO } from '@/lib/glossario';
 
 export const Route = createFileRoute('/_authenticated/guia')({
   head: () => ({ meta: [{ title: 'Guia rápido · Aura ID' }] }),
@@ -22,14 +25,14 @@ const PASSOS = [
   {
     n: 3, titulo: 'Explore como quiser', icone: '🧭',
     corpo: 'No Estúdio você diz como está hoje ("quero me sentir poderosa pro aniversário da empresa") e a Aura cria convites visuais. Cada módulo (maquiagem, cabelo, roupas, tatuagem, jornada) tem seu gerador. Em tudo, a IA primeiro mostra o cartão "Entendi assim" — você corrige e confirma antes de gerar.',
-    dicas: ['Seja específica: "cabelo cacheado solto, tom mel" funciona melhor que "cabelo diferente"', 'Não gostou? A verificação automática regenera 1x sozinha e te conta as pendências'],
+    dicas: ['Quanto mais específico o pedido, melhor: "cabelo cacheado solto, tom mel" funciona melhor que "cabelo diferente"', 'Não gostou? A verificação automática regenera 1x sozinha e te conta as pendências'],
     cta: { rotulo: 'Ir para o Estúdio', to: '/studio' },
   },
   {
     n: 4, titulo: 'Gere COM você (ou sem você)', icone: '📸',
-    corpo: 'Com o modelo criado, todo gerador mostra a caixinha "Usar meu modelo pessoal (a imagem sai com você)". Ligada: o resultado é você com a mudança. Desligada: pessoa fictícia. Pro retoque fino na hora, use o Retrato — envie UMA foto e descreva o que mudar, alvo por alvo.',
+    corpo: 'Com o modelo criado, todo gerador mostra a caixinha "Usar meu modelo pessoal (a imagem sai com você)". Ligada: o resultado é você com a mudança. Desligada: pessoa fictícia. Pro retoque fino na hora, use o Aura Retrato — envie UMA foto e descreva o que mudar, alvo por alvo.',
     dicas: ['Cada geração tem checagem automática (texto certo, alvo certo, é você mesmo)', 'O contador embaixo mostra quantas grátis ainda restam'],
-    cta: { rotulo: 'Experimentar o Retrato', to: '/retrato' },
+    cta: { rotulo: 'Experimentar o Aura Retrato', to: '/retrato' },
   },
   {
     n: 5, titulo: 'Quando amar o resultado', icone: '✦',
@@ -42,17 +45,17 @@ const PASSOS = [
 function Page() {
   return (
     <div className="mx-auto max-w-3xl space-y-10">
-      <div>
-        <span className="text-sm text-accent">Primeira vez? Comece aqui</span>
-        <h1 className="mt-2 text-5xl">Guia <em>rápido</em></h1>
-        <p className="mt-3 text-muted-foreground">Cinco passos e você domina o Aura ID. Na ordem — o primeiro é o que muda tudo.</p>
-      </div>
+      <CabecalhoPagina
+        sobretitulo="Primeira vez? Comece aqui"
+        titulo={<>Guia <em>rápido</em></>}
+        descricao="Cinco passos e você domina o Aura ID. Na ordem — o primeiro é o que muda tudo."
+      />
       <ol className="space-y-6">
         {PASSOS.map((p) => (
-          <li key={p.n} className="rounded-2xl border bg-card p-6">
+          <li key={p.n} className={CARTAO}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">{p.icone}</span>
-              <h2 className="text-2xl"><span className="text-muted-foreground">{p.n}.</span> {p.titulo}</h2>
+              <h2 className={TITULO_ITEM}><span className="text-muted-foreground">{p.n}.</span> {p.titulo}</h2>
             </div>
             <p className="mt-3 text-sm leading-relaxed">{p.corpo}</p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-muted-foreground">{p.dicas.map((d) => <li key={d}>💡 {d}</li>)}</ul>
@@ -60,6 +63,18 @@ function Page() {
           </li>
         ))}
       </ol>
+      <section aria-labelledby="glossario-aura-id" className={CARTAO}>
+        <h2 id="glossario-aura-id" className={TITULO_ITEM}>Glossário do Aura ID</h2>
+        <p className="mt-2 text-sm text-muted-foreground">A mesma palavra quer dizer a mesma coisa em todas as telas. É por aqui que você confere o que cada termo significa.</p>
+        <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          {GLOSSARIO.map(({ termo, definicao }) => (
+            <div key={termo}>
+              <dt className="text-sm font-medium">{termo}</dt>
+              <dd className="mt-1 text-xs leading-relaxed text-muted-foreground">{definicao}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
       <p className="text-sm text-muted-foreground">Dúvidas ou algo saiu estranho? O botão de regenerar é seu amigo — e a IA te conta o que ficou pendente. <Link to="/studio" className="underline">Já quero começar →</Link></p>
     </div>
   );

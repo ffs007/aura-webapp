@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EstadoErro, EsqueletoDetalhe } from "@/components/estados";
+import { FOCO, TITULO_SECAO } from "@/lib/design";
 import { bumpSignals, logEvent } from "@/lib/aura";
 
 export const Route = createFileRoute("/_authenticated/dna/preferencias")({
@@ -32,12 +33,12 @@ function Chips({ label, values, onChange, color }: { label: string; values: stri
       <Label>{label}</Label>
       <div className="flex gap-2">
         {color && <input type="color" value={hex} onChange={(e) => setHex(e.target.value)} className="h-9 w-12 cursor-pointer rounded-md border bg-transparent" aria-label="Escolher cor" />}
-        <Input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={color ? "nome (ex.: terracota) ou use o seletor" : "ex.: alfaiataria leve"} />
+        <Input aria-label={`Adicionar item em ${label}`} value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} placeholder={color ? "ex.: terracota — ou toque na cor ao lado" : "ex.: alfaiataria leve"} />
         <Button type="button" variant="secondary" onClick={add}>Adicionar</Button>
       </div>
       <div className="flex flex-wrap gap-2">
         {values.map((x) => (
-          <button key={x} onClick={() => onChange(values.filter((y) => y !== x))} className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs" title="Remover">
+          <button key={x} onClick={() => onChange(values.filter((y) => y !== x))} aria-label={`Remover ${x}`} className={`flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs ${FOCO}`} title="Remover">
             {color && x.startsWith("#") && <span className="h-3 w-3 rounded-full border" style={{ background: x }} />}{x} ×
           </button>
         ))}
@@ -61,40 +62,47 @@ function Prefs() {
     setSaving(true);
     const { error } = await supabase.from("preferences").upsert({ user_id: user.id, ...p, updated_at: new Date().toISOString() });
     setSaving(false);
-    if (error) { toast.error("Não foi possível salvar suas preferências."); return; }
+    if (error) { toast.error("Não foi possível salvar suas preferências. Tente de novo."); return; }
     await logEvent("preferences_updated");
     await bumpSignals(3);
     toast.success("Preferências salvas. Atualize o resumo quando quiser.");
     qc.invalidateQueries();
   }
 
-  if (q.isLoading) return <Skeleton className="h-96 rounded-2xl" />;
+  if (q.isLoading) return <EsqueletoDetalhe />;
+  if (q.error) return (
+    <EstadoErro
+      titulo="Não foi possível carregar suas preferências."
+      onTentarNovamente={() => void q.refetch()}
+      recarregando={q.isFetching}
+    />
+  );
   const set = (k: keyof P) => (v: unknown) => setP({ ...p, [k]: v } as P);
   return (
     <div className="max-w-3xl space-y-10">
-      <section className="space-y-5"><h2 className="text-3xl">Cores</h2>
+      <section className="space-y-5"><h2 className={TITULO_SECAO}>Cores</h2>
         <Chips color label="Cores preferidas" values={p.colors_liked} onChange={set("colors_liked")} />
         <Chips color label="Cores rejeitadas" values={p.colors_rejected} onChange={set("colors_rejected")} />
       </section>
-      <section className="space-y-5"><h2 className="text-3xl">Estilos e referências</h2>
+      <section className="space-y-5"><h2 className={TITULO_SECAO}>Estilos e referências</h2>
         <Chips label="Estilos favoritos" values={p.styles_liked} onChange={set("styles_liked")} />
         <Chips label="Estilos rejeitados" values={p.styles_rejected} onChange={set("styles_rejected")} />
       </section>
-      <section className="space-y-4"><h2 className="text-3xl">Objetivos</h2>
-        <div className="space-y-2"><Label>Imagem profissional</Label><Textarea rows={2} value={p.professional_goals} onChange={(e) => set("professional_goals")(e.target.value)} /></div>
-        <div className="space-y-2"><Label>Imagem social</Label><Textarea rows={2} value={p.social_goals} onChange={(e) => set("social_goals")(e.target.value)} /></div>
+      <section className="space-y-4"><h2 className={TITULO_SECAO}>Objetivos</h2>
+        <div className="space-y-2"><Label htmlFor="dna-pref-profissional">Imagem profissional</Label><Textarea id="dna-pref-profissional" rows={2} value={p.professional_goals} onChange={(e) => set("professional_goals")(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="dna-pref-social">Imagem social</Label><Textarea id="dna-pref-social" rows={2} value={p.social_goals} onChange={(e) => set("social_goals")(e.target.value)} /></div>
       </section>
-      <section className="space-y-4"><h2 className="text-3xl">Corpo e mudanças (opcional)</h2>
+      <section className="space-y-4"><h2 className={TITULO_SECAO}>Corpo e mudanças (opcional)</h2>
         <p className="text-sm text-muted-foreground">Só use se quiser. Nunca inferimos nada sobre seu corpo.</p>
-        <div className="space-y-2"><Label>Áreas que gosta de valorizar</Label><Input value={p.body_highlight} onChange={(e) => set("body_highlight")(e.target.value)} /></div>
-        <div className="space-y-2"><Label>Áreas que prefere preservar / não destacar</Label><Input value={p.body_preserve} onChange={(e) => set("body_preserve")(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="dna-pref-valorizar">Áreas que gosta de valorizar</Label><Input id="dna-pref-valorizar" value={p.body_highlight} onChange={(e) => set("body_highlight")(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="dna-pref-preservar">Áreas que prefere preservar / não destacar</Label><Input id="dna-pref-preservar" value={p.body_preserve} onChange={(e) => set("body_preserve")(e.target.value)} /></div>
         <div className="space-y-2"><Label>Tolerância a mudanças permanentes</Label>
-          <Slider min={1} max={5} step={1} value={[p.permanent_tolerance]} onValueChange={([v]) => set("permanent_tolerance")(v ?? 2)} />
-          <div className="flex justify-between text-xs text-muted-foreground"><span>Só reversíveis</span><span>Aberta(o) a permanentes</span></div></div>
+          <Slider aria-label="Tolerância a mudanças permanentes (1 a 5)" min={1} max={5} step={1} value={[p.permanent_tolerance]} onValueChange={([v]) => set("permanent_tolerance")(v ?? 2)} />
+          <div className="flex justify-between text-xs text-muted-foreground"><span>Só reversíveis</span><span>Aceito mudanças permanentes</span></div></div>
       </section>
-      <section className="space-y-4"><h2 className="text-3xl">Vida real</h2>
-        <div className="space-y-2"><Label>O que funciona na vida real</Label><Textarea rows={2} value={p.works_in_life} onChange={(e) => set("works_in_life")(e.target.value)} /></div>
-        <div className="space-y-2"><Label>Bonito na teoria, mas não uso</Label><Textarea rows={2} value={p.theory_only} onChange={(e) => set("theory_only")(e.target.value)} /></div>
+      <section className="space-y-4"><h2 className={TITULO_SECAO}>Vida real</h2>
+        <div className="space-y-2"><Label htmlFor="dna-pref-real">O que funciona na vida real</Label><Textarea id="dna-pref-real" rows={2} value={p.works_in_life} onChange={(e) => set("works_in_life")(e.target.value)} /></div>
+        <div className="space-y-2"><Label htmlFor="dna-pref-teoria">Bonito na teoria, mas não uso</Label><Textarea id="dna-pref-teoria" rows={2} value={p.theory_only} onChange={(e) => set("theory_only")(e.target.value)} /></div>
       </section>
       <Button size="lg" onClick={save} disabled={saving}>{saving ? "Salvando…" : "Salvar preferências"}</Button>
     </div>
