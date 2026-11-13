@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CabecalhoPagina } from "@/components/estados";
 import { TITULO_ITEM } from "@/lib/design";
 import { urlAbsoluta } from "@/lib/site";
+import { RodapeLegal } from "@/components/RodapeLegal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -71,6 +72,7 @@ function Landing() {
           Provador fotorrealista, simulação de penteados, realidade aumentada ao vivo, simulação de tatuagem em movimento e correção por vídeo ao vivo estão no nosso roteiro e ainda não fazem parte desta versão.
         </p>
       </section>
+      <RodapeLegal />
     </div>
   );
 }

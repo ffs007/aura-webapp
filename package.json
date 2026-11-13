@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verificar:lancamento": "node scripts/verificar-lancamento.mjs"
+    "verificar:lancamento": "node scripts/verificar-lancamento.mjs",
+    "smoke:producao": "node scripts/smoke-producao.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
