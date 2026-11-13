@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { CabecalhoPagina } from "@/components/estados";
 import { TITULO_ITEM } from "@/lib/design";
+import { urlAbsoluta } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -11,8 +12,10 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Aura ID — Uma companhia gentil para sua identidade visual" },
       { property: "og:description", content: "Sugestões de identidade visual contextuais e emocionalmente seguras, como experimentos, não regras." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: urlAbsoluta("/") },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: urlAbsoluta("/") }],
   }),
   component: Landing,
 });

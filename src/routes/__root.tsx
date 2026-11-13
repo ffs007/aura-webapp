@@ -15,6 +15,7 @@ import { FeedbackButton } from "@/components/FeedbackButton";
 import { GuiaRapidoAjuda } from "@/components/GuiaRapidoAjuda";
 import { supabase } from "@/integrations/supabase/client";
 import { iniciarInstrumentacao } from "@/lib/instrumentacao";
+import { IMAGEM_COMPARTILHAMENTO, urlAbsoluta } from "@/lib/site";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -106,7 +107,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Aura ID — Sua identidade visual, com delicadeza" },
       { name: "description", content: "Companhia de identidade visual guiada por IA e emocionalmente segura." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Aura ID" },
+      { property: "og:locale", content: "pt_BR" },
+      { property: "og:image", content: urlAbsoluta(IMAGEM_COMPARTILHAMENTO) },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: "Aura ID — sua identidade visual, com delicadeza" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: urlAbsoluta(IMAGEM_COMPARTILHAMENTO) },
+      { name: "theme-color", content: "#f6efe7" },
     ],
     links: [
       {

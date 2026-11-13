@@ -16,6 +16,7 @@ import { EnviarBriefing } from "@/components/EnviarBriefing";
 import { Aviso, CarregandoInline, EstadoErro } from "@/components/estados";
 import { PaywallCard } from "@/components/PaywallCard";
 import { CARTAO_COMPACTO, CARTAO_DESTAQUE, META } from "@/lib/design";
+import { AVISO_SEM_BASE, escolherBaseTatuagem } from "@/lib/base-tatuagem";
 import { buscarPecas, provarPeca, type PecaCasada } from "@/lib/catalogo.functions";
 import { streamImage } from "@/lib/stream-image";
 
@@ -61,6 +62,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
   }
   const [temModelo, setTemModelo] = useState(false);
   const [temCorpo, setTemCorpo] = useState(false);
+  const [fotoLocal, setFotoLocal] = useState<string | null>(null);
   const [usarModelo, setUsarModelo] = useState(true);
   const pacoteKind = useRef("");
   useEffect(() => {
@@ -72,8 +74,18 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       const nomes = new Set((arqs ?? []).map((a) => a.name));
       setTemModelo(nomes.has("modelo-rosto.png") || nomes.has("modelo-corpo.png"));
       setTemCorpo(nomes.has("modelo-corpo.png"));
-      const { data: p } = await supabase.from("packages").select("kind").eq("id", packageId).maybeSingle();
+      const { data: p } = await supabase.from("packages").select("kind,context").eq("id", packageId).maybeSingle();
       pacoteKind.current = String(p?.kind ?? "");
+      // Tatuagem: foto privada do local é a base que garante a região certa na prévia.
+      if (tattoo) {
+        const pid = (p?.context as Record<string, unknown> | null)?.["project_id"];
+        if (pid) {
+          const { data: fotos } = await supabase.from("photos").select("path")
+            .eq("user_id", u.user.id).eq("tattoo_project_id", String(pid)).eq("kind", "tattoo_body")
+            .order("created_at", { ascending: false }).limit(1);
+          setFotoLocal(fotos?.[0]?.path ?? null);
+        }
+      }
     })();
   }, [packageId, tattoo, look]);
   /** Fatia B3 — provador: base preferida é o modelo pessoal (corpo); senão o visual gerado. */
@@ -135,32 +147,43 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       }
     } finally { running.current = false; setBusy(false); }
   }
+  /** Assina caminhos privados do cofre para servirem de imagem-base na geração. */
+  async function assinarBase(caminhos: string[]): Promise<string[]> {
+    const urls: string[] = [];
+    for (const caminho of caminhos.filter(Boolean).slice(0, 3)) {
+      const s = await supabase.storage.from("user-photos").createSignedUrl(caminho, 600);
+      if (s.data?.signedUrl) urls.push(s.data.signedUrl);
+    }
+    return urls;
+  }
   async function runGeneration(briefConfirmado?: TattooBrief | LookBrief, correcao?: string[]): Promise<{ status: "ok" | "reprovado" | "falhou"; falhas?: string[] }> {
     let id: string | undefined;
     try {
       if (q.data?.status === "ready" || q.data?.status === "generating") throw new Error("Existe uma solicitação em andamento. Aguarde ou descarte a anterior.");
-      const r = await prepare({ data: { packageId, slot, agree, ...(briefConfirmado ? { brief: briefConfirmado } : {}), ...(correcao?.length ? { correcao } : {}) } }); id = r.id;
       const { data: auth } = await supabase.auth.getSession(); if (!auth.session) throw new Error("Entre na sua conta.");
-      // Tatuagem de escrita (lettering/composição): motor Ideogram (com reserva fal) + referências do projeto.
+      const briefTattoo = briefConfirmado && "tipo" in briefConfirmado ? (briefConfirmado as TattooBrief) : null;
       let taskId: string | undefined;
       let refs: string[] = [];
-      if (briefConfirmado && "tipo" in briefConfirmado) {
-        const b = briefConfirmado as TattooBrief;
-        if (b.tipo === "lettering" || b.tipo === "composicao") {
-          taskId = "webapp.ink.render";
-          for (const p of refsPaths.current) {
-            const s = await supabase.storage.from("user-photos").createSignedUrl(p, 600);
-            if (s.data?.signedUrl) refs.push(s.data.signedUrl);
-          }
-        }
-      }
-      // Modelo pessoal como base: aplicações saem SOBRE a imagem-base da própria pessoa (Kontext).
-      if (!taskId && usarModelo && temModelo && (tattoo || look)) {
-        const { data: u } = await supabase.auth.getUser();
+      let ancorada = false;
+      if (briefTattoo && (briefTattoo.tipo === "lettering" || briefTattoo.tipo === "composicao")) {
+        // Escrita: motor de lettering (Ideogram com reserva fal) + referências do projeto.
+        taskId = "webapp.ink.render";
+        refs = await assinarBase([...refsPaths.current, ...(fotoLocal ? [fotoLocal] : [])]);
+      } else if (briefTattoo) {
+        // Símbolo/linha: a prévia nasce de uma FOTO (Meu Modelo ou foto do local).
+        // Sem base o modelo inventa a região do corpo — por isso aqui é obrigatório.
+        const origem = escolherBaseTatuagem({ preview: briefTattoo.preview, temModeloCorpo: temCorpo, usarModelo, temFotoDoLocal: !!fotoLocal });
+        if (origem === "nenhuma") throw new Error(AVISO_SEM_BASE);
+        const caminho = origem === "modelo" ? `${auth.session.user.id}/modelo-corpo.png` : String(fotoLocal);
+        refs = await assinarBase([caminho]);
+        if (!refs.length) throw new Error("Não foi possível abrir sua foto de referência. Tente novamente.");
+        ancorada = true;
+      } else if (usarModelo && temModelo && (tattoo || look)) {
+        // Modelo pessoal como base: aplicações saem SOBRE a imagem-base da própria pessoa.
         const arquivo = /makeup|hair|barba/.test(pacoteKind.current) ? "modelo-rosto.png" : "modelo-corpo.png";
-        const s = await supabase.storage.from("user-photos").createSignedUrl(`${u.user?.id ?? ""}/${arquivo}`, 600);
-        if (s.data?.signedUrl) refs.push(s.data.signedUrl);
+        refs = await assinarBase([`${auth.session.user.id}/${arquivo}`]);
       }
+      const r = await prepare({ data: { packageId, slot, agree, ...(briefConfirmado ? { brief: briefConfirmado } : {}), ...(correcao?.length ? { correcao } : {}), ...(ancorada ? { ancorada: true } : {}) } }); id = r.id;
       let completed: string | undefined;
       await streamImage("/api/reference-image", { id, ...(taskId ? { task_id: taskId } : {}), ...(refs.length ? { input_refs: refs } : {}) }, (url, done) => { setPreview(url); setFinal(done); if (done) completed = url; }, undefined, { Authorization: `Bearer ${auth.session.access_token}` });
       if (!completed) throw new Error("A IA não devolveu uma imagem final.");
@@ -204,6 +227,10 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       }
     } catch (e) { setErr(e instanceof Error ? e.message : "Não foi possível interpretar o pedido. Tente de novo."); } finally { setInterpretando(false); }
   }
+  // Base da prévia de tatuagem: foto do local > Meu Modelo > desenho isolado.
+  const origemBase = brief
+    ? escolherBaseTatuagem({ preview: brief.preview, temModeloCorpo: temCorpo, usarModelo, temFotoDoLocal: !!fotoLocal })
+    : null;
   return <div className="mt-4 space-y-3 border-t pt-3 print:hidden">
     {q.isLoading && <CarregandoInline rotulo="Carregando imagem…" />}
     {q.error && <EstadoErro titulo="Não foi possível carregar a referência" onTentarNovamente={() => void q.refetch()} recarregando={q.isFetching} />}
@@ -224,8 +251,12 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
         {refsPaths.current.length > 0 && <p className="mt-2 text-xs text-muted-foreground">📎 {refsPaths.current.length} referência{refsPaths.current.length > 1 ? "s" : ""} sua{refsPaths.current.length > 1 ? "s" : ""} de tatuagem {refsPaths.current.length > 1 ? "serão" : "será"} usada{refsPaths.current.length > 1 ? "s" : ""} como base.</p>}
         <p className="mt-2 text-xs text-muted-foreground">A escrita sai caractere por caractere, exatamente como confirmada acima.</p>
       </>}
+      {origemBase === "nenhuma" && <Aviso tom="atencao">{AVISO_SEM_BASE} <a className="underline underline-offset-2" href="/tatuagem/referencias">Enviar foto do local</a> ou <a className="underline underline-offset-2" href="/modelo">criar meu Meu Modelo</a>.</Aviso>}
+      {origemBase === "foto" && <p className={META}>🖼️ Sua foto do local será usada como base — a tatuagem é aplicada sobre ela, na região fotografada.</p>}
+      {origemBase === "modelo" && <p className={META}>👤 Seu Meu Modelo (corpo) será usado como base da prévia.</p>}
+      {origemBase === "livre" && <p className={META}>Desenho isolado em folha: sem corpo e sem foto de base.</p>}
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => generate(brief)}>Confirmar e gerar</Button>
+        <Button size="sm" onClick={() => generate(brief)} disabled={origemBase === "nenhuma"}>Confirmar e gerar</Button>
         <Button size="sm" variant="ghost" onClick={() => setBrief(null)}>Corrigir pedido depois</Button>
       </div>
     </div>}

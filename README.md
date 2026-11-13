@@ -28,6 +28,16 @@ npm run dev
 - React
 - Tailwind CSS
 
+## Domínio e publicação
+
+O domínio oficial do produto é **`auraid.app.br`**. O app monta `canonical`, `og:url` e a imagem de compartilhamento a partir de `VITE_APP_URL` (padrão `https://auraid.app.br` quando a variável não existe):
+
+```sh
+VITE_APP_URL=https://auraid.app.br
+```
+
+Pontos que dependem do domínio e ficam fora do repositório (DNS, Supabase Auth e e-mail) estão no passo a passo [DOMINIO-AURAID-APP-BR.md](DOMINIO-AURAID-APP-BR.md) — inclui `Site URL`/`Redirect URLs` do Supabase, verificação do domínio no Resend (SPF/DKIM/DMARC) e checklist de conferência.
+
 ## Verificar bloqueios de lançamento
 
 Depois de configurar as chaves (veja [`.env.example`](.env.example)):
