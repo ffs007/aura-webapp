@@ -107,6 +107,18 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
   }
   const regen = useRef(false);
   const running = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const [decorrido, setDecorrido] = useState(0);
+  useEffect(() => {
+    if (!busy) { setDecorrido(0); return; }
+    const inicio = Date.now();
+    const t = setInterval(() => setDecorrido(Math.floor((Date.now() - inicio) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [busy]);
+  function cancelarGeracao() {
+    abortRef.current?.abort();
+    toast.info("Cancelando a geração…");
+  }
   const refsPaths = useRef<string[]>([]);
   const carregarRefsTattoo = async () => {
     if (!packageId) { refsPaths.current = []; return; }
@@ -158,6 +170,8 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
   }
   async function runGeneration(briefConfirmado?: TattooBrief | LookBrief, correcao?: string[]): Promise<{ status: "ok" | "reprovado" | "falhou"; falhas?: string[] }> {
     let id: string | undefined;
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       if (q.data?.status === "ready" || q.data?.status === "generating") throw new Error("Existe uma solicitação em andamento. Aguarde ou descarte a anterior.");
       const { data: auth } = await supabase.auth.getSession(); if (!auth.session) throw new Error("Entre na sua conta.");
@@ -185,7 +199,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       }
       const r = await prepare({ data: { packageId, slot, agree, ...(briefConfirmado ? { brief: briefConfirmado } : {}), ...(correcao?.length ? { correcao } : {}), ...(ancorada ? { ancorada: true } : {}) } }); id = r.id;
       let completed: string | undefined;
-      await streamImage("/api/reference-image", { id, ...(taskId ? { task_id: taskId } : {}), ...(refs.length ? { input_refs: refs } : {}) }, (url, done) => { setPreview(url); setFinal(done); if (done) completed = url; }, undefined, { Authorization: `Bearer ${auth.session.access_token}` });
+      await streamImage("/api/reference-image", { id, ...(taskId ? { task_id: taskId } : {}), ...(refs.length ? { input_refs: refs } : {}) }, (url, done) => { setPreview(url); setFinal(done); if (done) completed = url; }, controller.signal, { Authorization: `Bearer ${auth.session.access_token}` });
       if (!completed) throw new Error("A IA não devolveu uma imagem final.");
       const path = `${auth.session.user.id}/reference-${id}.png`;
       const blob = await (await fetch(completed)).blob();
@@ -205,10 +219,15 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       setPendencia(null);
       return { status: "ok" };
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Não foi possível gerar a imagem. Tente de novo.";
-      setPaywall(/gera(ç|c)(õ|o)es gratuitas|Aura Pass/i.test(message));
+      const cancelada = e instanceof Error && (e.name === "AbortError" || /abort/i.test(e.message));
+      const message = cancelada
+        ? "Geração cancelada — nenhuma imagem foi guardada."
+        : e instanceof Error ? e.message : "Não foi possível gerar a imagem. Tente de novo.";
+      setPaywall(!cancelada && /gera(ç|c)(õ|o)es gratuitas|Aura Pass/i.test(message));
       setErr(message); setPreview(null); if (id) await finish({ data: { id, error: message } }).catch(() => {});
       return { status: "falhou" };
+    } finally {
+      abortRef.current = null;
     }
   }
   async function iniciar() {
@@ -272,7 +291,8 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
     </div>}
     <div className="flex flex-wrap gap-2">
       {temModelo && (tattoo || look) && !busy && !interpretando && <label className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={usarModelo} onChange={(e) => setUsarModelo(e.target.checked)} />Usar meu modelo pessoal (a imagem sai com você)</label>}
-      <Button size="sm" variant="outline" disabled={busy || interpretando || q.isLoading || (!image && !agree)} onClick={iniciar}>{busy || interpretando ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <ImagePlus aria-hidden className="size-4" />}{busy ? "Gerando…" : interpretando ? "Interpretando…" : image ? "Gerar novamente" : slot === "avatar" ? "Gerar retrato" : "Gerar imagem"}</Button>
+      <Button size="sm" variant="outline" disabled={busy || interpretando || q.isLoading || (!image && !agree)} onClick={iniciar}>{busy || interpretando ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <ImagePlus aria-hidden className="size-4" />}{busy ? `Gerando… ${decorrido}s` : interpretando ? "Interpretando…" : image ? "Gerar novamente" : slot === "avatar" ? "Gerar retrato" : "Gerar imagem"}</Button>
+      {busy && <Button size="sm" variant="ghost" onClick={cancelarGeracao}>Cancelar</Button>}
       {image && !busy && <><Button size="icon" variant="ghost" title="Ampliar imagem" aria-label="Ampliar imagem" onClick={() => setOpen(true)}><Expand aria-hidden className="size-4" /></Button><Button size="icon" variant="ghost" title="Baixar imagem" aria-label="Baixar imagem" onClick={async () => { const blob = await (await fetch(image)).blob(); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "aura-id-referencia.png"; a.click(); URL.revokeObjectURL(url); }}><Download aria-hidden className="size-4" /></Button></>}
       {q.data?.id && !busy && <Button size="icon" variant="ghost" title="Excluir referência ou solicitação" aria-label="Excluir referência ou solicitação" onClick={() => remove().catch(() => toast.error("Não foi possível excluir a referência. Tente de novo."))}><Trash2 aria-hidden className="size-4" /></Button>}
     </div>

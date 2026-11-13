@@ -24,6 +24,7 @@ const FERRAMENTAS: [string, string][] = [
   ["/dna", "DNA Visual"],
   ["/compare", "Comparar"],
   ["/export", "Exportar"],
+  ["/tatuagem/vitrine", "🖼️ Vitrine"],
   ["/profissionais", "Profissionais"],
   ["/estetica", "✨ Estética"],
   ["/modelo", "👤 Modelo"],

@@ -230,6 +230,16 @@ function Page() {
             <figure className="space-y-2">
               <img src={resultado} alt="Sua foto com a edição aplicada por IA" className={`max-h-96 rounded-lg object-contain ${editando ? 'opacity-50' : ''}`} />
               <figcaption className="text-xs text-muted-foreground">Edição por IA sobre a sua foto · não é resultado profissional garantido</figcaption>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={async () => {
+                  const blob = await (await fetch(resultado)).blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'aura-retrato.png'; a.click();
+                  URL.revokeObjectURL(url);
+                }}>Baixar resultado</Button>
+                <Button size="sm" variant="ghost" onClick={() => setResultado(null)}>Limpar resultado</Button>
+              </div>
               {veredito?.aprovado && <p className="text-xs text-accent">Verificação automática: edição aprovada. {veredito.resumo}</p>}
             </figure>
           )}
