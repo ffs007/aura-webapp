@@ -37,8 +37,14 @@ export const interpretJsonSchema = {
   },
 };
 
-/** Prompt determinístico para o modelo de imagem — entidades explícitas + negativas obrigatórias. */
-export function compileTattooPrompt(b: TattooBrief): string {
+/**
+ * Prompt determinístico para o modelo de imagem — entidades explícitas + negativas obrigatórias.
+ *
+ * `ancorada` (11/2026): quando existe foto real (Meu Modelo ou foto do local), a
+ * geração é uma EDIÇÃO dessa foto. Sem isso o modelo escolhe a região do corpo e
+ * ignora o local pedido — foi o que fez um pedido de antebraço sair no ombro.
+ */
+export function compileTattooPrompt(b: TattooBrief, opcoes?: { ancorada?: boolean }): string {
   // Campos editáveis pelo usuário (local, estilo, elementos) viram texto do
   // prompt: removemos pontuação que poderia funcionar como instrução e limitamos
   // o tamanho, para o local não "ensinar" o modelo a escrever outra coisa.
@@ -50,8 +56,19 @@ export function compileTattooPrompt(b: TattooBrief): string {
     .filter(Boolean).join(" · ");
   const noCorpo = b.preview === "no_corpo" && !!local;
   const temTexto = b.tipo === "lettering" || (b.tipo === "composicao" && !!b.texto);
+  // Com foto de base, a instrução deixa de ser "fotografe tal região" e passa a ser
+  // "edite ESTA foto": a região, o ângulo e o corpo vêm da imagem, não do texto.
+  const ancorada = !!opcoes?.ancorada && noCorpo;
   const partes: string[] = [];
-  if (noCorpo) {
+  if (ancorada) {
+    partes.push(
+      `Edite a fotografia real enviada como referência (o próprio corpo da pessoa): preserve exatamente o enquadramento, o ângulo, a luz, a pele, o formato do membro e a perspectiva da foto — não gerar outro corpo, não recortar outra região e não reposicionar o membro. ` +
+      `Desenhe a tatuagem sobre a pele dessa foto, exatamente em ${onde}. ` +
+      `A tatuagem está exatamente em ${local}${b.lateralidade !== "nao_se_aplica" ? ` (lado ${b.lateralidade})` : ""}: não deslocar para a região vizinha (antebraço não é braço; braço não é antebraço; ombro não é braço) nem trocar o lado. ` +
+      `A textura da pele, a iluminação e o formato vêm da foto original; a tatuagem parece cicatrizada e integrada à pele. ` +
+      `Mantenha o resultado como FOTOGRAFIA realista da pessoa: não converter a imagem em desenho, ilustração, esboço, aquarela, filtro artístico ou arte vetorial.`,
+    );
+  } else if (noCorpo) {
     partes.push(
       `Fotografia realista de uma tatuagem já aplicada em ${onde}, em pessoa adulta fictícia. ` +
       `Enquadramento bem fechado, mostrando apenas ${local} e o entorno imediato — não mostrar o corpo inteiro, o rosto inteiro nem outras regiões. ` +
@@ -71,7 +88,7 @@ export function compileTattooPrompt(b: TattooBrief): string {
   } else {
     partes.push(`Composição com: ${elementos.join(", ")}.${b.texto ? ` Inclui a escrita exata "${b.texto}" com acentos preservados.` : ""}`);
   }
-  if (estilo) partes.push(`Estilo de tatuagem: ${estilo}.`);
+  if (estilo) partes.push(`Estilo de tatuagem: ${estilo}.${ancorada ? " Esse estilo vale apenas para o traço da tatuagem, não para a foto." : ""}`);
   if (elementos.length && b.tipo !== "simbolo") partes.push(`Elementos permitidos na cena: apenas ${elementos.join(", ")} e a região do corpo citada.`);
   if (temTexto) {
     partes.push("Não adicionar legendas, assinaturas, palavras soltas, marcas d'água ou qualquer texto além do pedido.");
@@ -79,7 +96,14 @@ export function compileTattooPrompt(b: TattooBrief): string {
     partes.push("A imagem não contém nenhuma palavra, letra, número, legenda ou assinatura escrita: o desenho é só gráfico, sem texto de qualquer tipo.");
   }
   partes.push("Regras obrigatórias: não substituir texto pedido por símbolo; não traduzir, abreviar ou reescrever palavras; não espelhar a lateralidade; não adicionar dedos, orelhas ou membros extras; não usar marcas d'água nem texto de fundo; não simular sobreposição plástica de adesivo; não alterar o estilo pedido.");
-  partes.push("Referência visual de conceito, não prova virtual. Não retratar pessoas reais.");
+  if (ancorada) {
+    partes.push("A foto de referência manda: mesma pessoa, mesma região, mesmo enquadramento. Reproduzir a foto original com a tatuagem aplicada, sem improvisar cenário, roupa ou outra parte do corpo.");
+  }
+  partes.push(
+    ancorada
+      ? "Referência visual de conceito, não prova virtual. Usar somente a pessoa da foto enviada; não inventar outras pessoas."
+      : "Referência visual de conceito, não prova virtual. Não retratar pessoas reais.",
+  );
   return partes.join(" ");
 }
 

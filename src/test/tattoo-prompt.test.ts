@@ -40,6 +40,29 @@ describe("compileTattooPrompt", () => {
     const prompt = compileTattooPrompt({ ...base, preview: "isolado", local_corpo: undefined });
     expect(prompt).toMatch(/folha branca, sem pessoa, sem corpo/i);
   });
+
+  it("com foto de base, manda EDITAR a foto e preservar enquadramento e região", () => {
+    const prompt = compileTattooPrompt(base, { ancorada: true });
+    expect(prompt).toMatch(/Edite a fotografia real enviada como refer[êe]ncia/i);
+    expect(prompt).toMatch(/preserve exatamente o enquadramento/i);
+    expect(prompt).toMatch(/n[ãa]o gerar outro corpo/i);
+    expect(prompt).toMatch(/mesma regi[ãa]o, mesmo enquadramento/i);
+    expect(prompt).toMatch(/n[ãa]o converter a imagem em desenho/i);
+    expect(prompt).not.toMatch(/pessoa adulta fict[íi]cia/i);
+    expect(prompt).toMatch(/n[ãa]o cont[ée]m nenhuma palavra, letra, n[úu]mero, legenda/i);
+  });
+
+  it("sem foto de base continua descrevendo a cena (não menciona edição de foto)", () => {
+    const prompt = compileTattooPrompt(base);
+    expect(prompt).not.toMatch(/Edite a fotografia real/i);
+    expect(prompt).toMatch(/pessoa adulta fict[íi]cia/i);
+  });
+
+  it("pedido isolado nunca pede edição de foto, mesmo ancorado", () => {
+    const prompt = compileTattooPrompt({ ...base, preview: "isolado" }, { ancorada: true });
+    expect(prompt).not.toMatch(/Edite a fotografia real/i);
+    expect(prompt).toMatch(/folha branca, sem pessoa/i);
+  });
 });
 
 describe("mensagemDeImagemAmigavel", () => {
