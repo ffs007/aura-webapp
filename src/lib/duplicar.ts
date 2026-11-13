@@ -27,6 +27,8 @@ export type VersaoSugestao = {
   status: string;
   created_at: string;
   entry_mode: string | null;
+  /** Id da sugestão de origem quando esta linha nasceu de "duplicar". */
+  versao_de: string | null;
 };
 
 const TITULO_PADRAO = "Sugestão Aura ID";
@@ -46,7 +48,11 @@ export async function duplicarSugestao(p: SugestaoDuplicavel): Promise<{ id: str
 
   const original = (p.content && typeof p.content === "object" ? p.content : {}) as Record<string, unknown>;
   const tituloOriginal = typeof original["title"] === "string" && original["title"].trim() ? original["title"].trim() : TITULO_PADRAO;
-  const content = { ...original, title: `${tituloOriginal} · cópia` };
+  const content = { ...original, title: `${tituloOriginal} · versão` };
+  // Linhagem explícita: a nova linha é derivada desta, não uma sugestão solta.
+  // O histórico (`listarVersoes`) usa isso para marcar "derivada".
+  const contextoOriginal = (p.context && typeof p.context === "object" ? p.context : {}) as Record<string, unknown>;
+  const context = { ...contextoOriginal, versao_de: p.id, versao_origem_titulo: tituloOriginal };
 
   const { data, error } = await supabase
     .from("packages")
@@ -59,7 +65,7 @@ export async function duplicarSugestao(p: SugestaoDuplicavel): Promise<{ id: str
       content: content as unknown as Json,
       ...(p.kind ? { kind: p.kind } : {}),
       ...(p.emotional_mode ? { emotional_mode: p.emotional_mode } : {}),
-      ...(p.context !== undefined && p.context !== null ? { context: p.context as unknown as Json } : {}),
+      context: context as unknown as Json,
       ...(typeof p.beautiful_not_practical === "boolean" ? { beautiful_not_practical: p.beautiful_not_practical } : {}),
     })
     .select("id")
@@ -76,7 +82,7 @@ export async function duplicarSugestao(p: SugestaoDuplicavel): Promise<{ id: str
 export async function listarVersoes(userId: string, kind: string): Promise<VersaoSugestao[]> {
   const { data, error } = await supabase
     .from("packages")
-    .select("id,kind,status,created_at,entry_mode,content")
+    .select("id,kind,status,created_at,entry_mode,content,context")
     .eq("user_id", userId)
     .eq("kind", kind)
     .order("created_at", { ascending: false })
@@ -87,6 +93,8 @@ export async function listarVersoes(userId: string, kind: string): Promise<Versa
   return (data ?? []).map((row) => {
     const content = (row.content ?? {}) as Record<string, unknown>;
     const title = typeof content["title"] === "string" && content["title"].trim() ? content["title"].trim() : TITULO_PADRAO;
+    const context = (row.context ?? {}) as Record<string, unknown>;
+    const versaoDe = typeof context["versao_de"] === "string" ? context["versao_de"] : null;
     return {
       id: row.id,
       kind: row.kind,
@@ -94,6 +102,7 @@ export async function listarVersoes(userId: string, kind: string): Promise<Versa
       status: row.status,
       created_at: row.created_at,
       entry_mode: row.entry_mode ?? null,
+      versao_de: versaoDe,
     };
   });
 }

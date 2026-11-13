@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Scissors } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,20 +17,44 @@ export const Route = createFileRoute("/_authenticated/cabelo/")({
 });
 
 function Plans() {
+  const [status, setStatus] = useState<string>("todos");
   const q = useQuery({ queryKey: ["hair-plans"], queryFn: async () => {
     const { data, error } = await supabase.from("packages").select("*").eq("kind", "hair_plan").order("created_at", { ascending: false });
     if (error) throw error; return data;
   } });
   const alerts = useQuery({ queryKey: ["hair-alerts"], queryFn: async () => (await supabase.from("hair_alerts").select("*").eq("active", true).order("next_at")).data ?? [] });
+  const statusDisponiveis = useMemo(
+    () => [...new Set((q.data ?? []).map((p) => p.status))].sort(),
+    [q.data],
+  );
   if (q.isLoading) return <EsqueletoLista itens={2} altura="h-40" />;
   if (q.error) return <EstadoErro titulo="Não foi possível carregar seus planos" descricao="Tente de novo — nada do que você fez foi perdido." onTentarNovamente={() => void q.refetch()} recarregando={q.isFetching} />;
   const list = q.data ?? [];
+  const filtrados = status === "todos" ? list : list.filter((p) => p.status === status);
   const due = (alerts.data ?? []).filter((a) => new Date(a.next_at) <= new Date());
   return (
     <div className="space-y-6">
       {due.length > 0 && (
         <div className={`${CARTAO_DESTAQUE} text-sm`}>
           Lembretes para agora: {due.map((a) => ALERT_KINDS.find((k) => k.id === a.kind)?.label).join(", ")}. <Link to="/cabelo/alertas" className="underline">Ver alertas</Link>
+        </div>
+      )}
+      {statusDisponiveis.length > 1 && (
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <label htmlFor="filtro-status-cabelo">Mostrar</label>
+          <select
+            id="filtro-status-cabelo"
+            aria-label="Filtrar planos por status"
+            className="rounded-md border bg-background p-2 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="todos">Todos os status ({list.length})</option>
+            {statusDisponiveis.map((s) => (
+              <option key={s} value={s}>{STATUS_LABEL[s] ?? s} ({list.filter((p) => p.status === s).length})</option>
+            ))}
+          </select>
+          {status !== "todos" && <span className="text-xs text-muted-foreground">{filtrados.length} de {list.length} planos</span>}
         </div>
       )}
       {!list.length ? (
@@ -40,9 +65,16 @@ function Plans() {
           descricao="Comece pelo perfil capilar — leva dois minutos — e depois escolha um objetivo."
           acoes={<><Button asChild variant="outline"><Link to="/cabelo/perfil">Perfil capilar</Link></Button><Button asChild><Link to="/cabelo/gerar">Criar plano</Link></Button></>}
         />
+      ) : filtrados.length === 0 ? (
+        <EstadoVazio
+          compacto
+          titulo="Nenhum plano com esse status"
+          descricao="Troque o filtro para ver os outros planos."
+          acoes={<Button variant="outline" onClick={() => setStatus("todos")}>Ver todos os status</Button>}
+        />
       ) : (
         <div className={GRADE_CARTOES}>
-          {list.map((p) => {
+          {filtrados.map((p) => {
             const c = p.content as unknown as HairPlan;
             const goal = HAIR_GOALS.find((g) => g.id === (p.context as { goal?: string })?.goal)?.label;
             return (

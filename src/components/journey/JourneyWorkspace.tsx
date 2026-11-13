@@ -161,7 +161,15 @@ export function PlanView({ id }: { id: string }) {
     <section className="max-w-2xl space-y-3 border-t pt-6"><h2 className={TITULO_SECAO}>Lembretes opcionais</h2><p className="text-sm text-muted-foreground">Aparecem só dentro do app. Nada é enviado por e-mail ou mensagem.</p>
       <div className="flex flex-wrap gap-2">{['Revisar meu plano', 'Preparar para evento', 'Check-in do que está em teste', 'Gerar relatório do mês'].map(t => <Button key={t} size="sm" variant={rt === t ? 'default' : 'outline'} aria-pressed={rt === t} onClick={() => setRt(t)}>{t}</Button>)}</div>
       <form className="flex flex-wrap gap-2" onSubmit={async e => { e.preventDefault(); try { await rem({ data: { plan_id: id, title: rt, due_at: rd } }); setRd(''); refresh(); toast.success('Lembrete criado.'); } catch (e) { err(e); } }}><Input aria-label="Data do lembrete" type="datetime-local" required className="max-w-xs" value={rd} onChange={e => setRd(e.target.value)} /><Button type="submit" variant="outline">Criar lembrete</Button></form>
-      <ul className="text-sm">{d.reminders.filter(r => r.journey_plan_id === id).map(r => <li key={r.id}>{r.title} · {new Date(r.due_at).toLocaleString('pt-BR')}{r.done ? ' · feito' : ''}</li>)}</ul></section>
+      <ul className="space-y-2 text-sm">{d.reminders.filter(r => r.journey_plan_id === id).map(r => (
+        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-2">
+          <span className={r.done ? 'text-muted-foreground line-through' : ''}>{r.title} · {new Date(r.due_at).toLocaleString('pt-BR')}</span>
+          <span className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={async () => { const { error } = await supabase.from('reminders').update({ done: !r.done }).eq('id', r.id); if (error) return err(error); refresh(); }}>{r.done ? 'Reabrir' : 'Concluir'}</Button>
+            <Confirm label="Excluir lembrete" desc="Este lembrete do plano será removido permanentemente." onYes={async () => { const { error } = await supabase.from('reminders').delete().eq('id', r.id); if (error) return err(error); toast.success('Lembrete excluído.'); refresh(); }} />
+          </span>
+        </li>
+      ))}</ul></section>
   </div>;
 }
 

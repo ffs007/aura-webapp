@@ -14,6 +14,7 @@ import { EnviarBriefing } from "@/components/EnviarBriefing";
 import { QuotaChip } from "@/components/QuotaChip";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Aviso, CabecalhoPagina, EstadoVazio } from "@/components/estados";
+import { Confirm } from "@/components/Confirm";
 import { CARTAO_COMPACTO, PILHA_PAGINA, TITULO_SECAO } from "@/lib/design";
 export const Route = createFileRoute("/_authenticated/barba")({ head: () => ({ meta: [{ title: "Barba — Aura ID" }, { name: "description", content: "Desenho, comprimento, rotina e guia de barbearia no seu ritmo." }, { property: "og:title", content: "Barba — Aura ID" }, { property: "og:description", content: "Explore barba e bigode com escolhas graduais e cuidados respeitosos." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: Beard });
 const fields = [["length", "Comprimento atual", "ex.: curta, 5 mm"], ["density", "Densidade percebida", "ex.: distribuída, áreas com menos pelos"], ["mustache", "Bigode", "ex.: aparado, sem bigode"], ["style", "Estilo desejado", "ex.: barba curta com contornos suaves"], ["sensitivity", "Sensibilidade informada (opcional)", "ex.: irritação após barbear"], ["time", "Tempo disponível", "ex.: 5 minutos por dia"], ["budget", "Orçamento", "ex.: prefiro cuidar em casa"]];
@@ -93,5 +94,19 @@ function Beard() {
         </section>
       )}
 
-      <section className="space-y-3 border-t pt-6"><h2 className={TITULO_SECAO}>Seus planos</h2>{q.data?.plans.length ? q.data.plans.map(p => <Link key={p.id} to="/package/$id" params={{ id: p.id }} className={`block ${CARTAO_COMPACTO}`}>{String((p.content as Record<string, unknown>)["title"])} · {p.status === "saved" ? "salvo" : "proposta"}</Link>) : <EstadoVazio compacto icone={<Scissors className="size-6" />} titulo="Nenhum plano de barba ainda" descricao="Gere um plano de barba acima para guardar as propostas e levar ao barbeiro." />}</section></div>;
+      <section className="space-y-3 border-t pt-6"><h2 className={TITULO_SECAO}>Seus planos</h2>{q.data?.plans.length ? <div className="space-y-2">{q.data.plans.map(p => (
+        <div key={p.id} className="flex flex-wrap items-center gap-2">
+          <Link to="/package/$id" params={{ id: p.id }} className={`block flex-1 ${CARTAO_COMPACTO}`}>{String((p.content as Record<string, unknown>)["title"])} · {p.status === "saved" ? "salvo" : "proposta"}</Link>
+          <Confirm
+            label="Excluir plano"
+            desc="Este plano de barba será removido permanentemente."
+            onYes={async () => {
+              const { error } = await supabase.from("packages").delete().eq("id", p.id);
+              if (error) { toast.error("Não foi possível excluir o plano. Tente de novo."); return; }
+              toast.success("Plano excluído.");
+              await qc.invalidateQueries({ queryKey: ["beard", user.id] });
+            }}
+          />
+        </div>
+      ))}</div> : <EstadoVazio compacto icone={<Scissors className="size-6" />} titulo="Nenhum plano de barba ainda" descricao="Gere um plano de barba acima para guardar as propostas e levar ao barbeiro." />}</section></div>;
 }

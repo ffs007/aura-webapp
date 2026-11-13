@@ -86,7 +86,7 @@ export function HistoricoSugestao({ kind, atualId }: { kind: string; atualId: st
           Histórico e versões
         </span>
       }
-      descricao="Versões deste mesmo tipo. Abra para comparar ou duplique para adaptar sem perder a original."
+      descricao="Versões deste mesmo tipo. Abra para comparar, duplique para adaptar sem perder a original — duplicatas ficam marcadas como derivadas."
       acoes={
         <Button size="sm" variant="outline" disabled={duplicando !== null} onClick={() => void duplicar(atualId)}>
           {duplicando === atualId ? "Duplicando…" : "Duplicar esta sugestão"}
@@ -118,6 +118,7 @@ export function HistoricoSugestao({ kind, atualId }: { kind: string; atualId: st
                 <p className="mt-0.5 flex flex-wrap items-center gap-2">
                   <Meta>{rotuloData(v.created_at)}</Meta>
                   <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{STATUS_LABEL[v.status] ?? v.status}</span>
+                  {v.versao_de && <span className="rounded-full border px-2 py-0.5 text-xs">derivada</span>}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-1">
