@@ -67,6 +67,16 @@ async function main() {
   const robots = await pegar("/robots.txt");
   registrar("robots.txt acessível", robots.ok && robots.status === 200, `status ${robots.status}`, false);
 
+  const saude = await pegar("/api/health");
+  let saudeJson = {};
+  try { saudeJson = JSON.parse(saude.texto); } catch { /* resposta não-JSON */ }
+  const saudeOk = saude.ok && saude.status === 200 && saudeJson.ok === true && saudeJson.checks?.banco === true;
+  registrar(
+    "Health check responde 200 com banco OK",
+    saudeOk,
+    saude.ok ? `status ${saude.status} · banco=${saudeJson.checks?.banco}` : saude.erro,
+  );
+
   const inexistente = await pegar("/rota-que-nao-existe-aura-id");
   registrar("Rota inexistente responde 404", inexistente.ok && inexistente.status === 404, `status ${inexistente.status}`, false);
 

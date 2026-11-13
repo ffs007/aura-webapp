@@ -70,6 +70,10 @@ export const enviarBriefing = createServerFn({ method: 'POST' })
   .handler(async ({ data, context: { supabase, userId } }) => {
     const { data: prof } = await supabase.from('professionals').select('id,ativo').eq('id', data.professional_id).eq('ativo', true).maybeSingle();
     if (!prof) throw new Error('Profissional não encontrado.');
+    // Anti-spam: no máximo 10 briefings por hora por conta.
+    const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: enviadosNaHora } = await supabase.from('briefing_sends').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', desde);
+    if ((enviadosNaHora ?? 0) >= 10) throw new Error('Muitos briefings em pouco tempo. Aguarde alguns minutos e tente de novo.');
     const { error } = await supabase.from('briefing_sends').insert({ user_id: userId, professional_id: data.professional_id, package_id: data.package_id ?? null, modulo: data.modulo, titulo: data.titulo, texto: data.texto, ...(data.foto_url ? { foto_url: data.foto_url } : {}) });
     if (error) throw new Error('Não foi possível enviar agora. Tente novamente.');
     return { ok: true };

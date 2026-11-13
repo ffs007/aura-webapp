@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CabecalhoPagina, CarregandoInline, CarregandoPagina, Cartao, EstadoErro, EstadoVazio, Aviso } from "@/components/estados";
 import { TITULO_SECAO } from "@/lib/design";
 import { adminStats } from "@/lib/aura.functions";
-import { funilInstrumentacao, type FunilResposta } from "@/lib/instrumentacao.functions";
+import { funilInstrumentacao, errosInstrumentacao, type FunilResposta, type ErrosResposta } from "@/lib/instrumentacao.functions";
 import { fmtDateTime } from "@/lib/aura";
 import { CatalogManager } from "@/components/CatalogManager";
 import { ParceirosManager } from "@/components/ParceirosManager";
@@ -32,9 +32,11 @@ const CONNECTORS = [
 function Admin() {
   const stats = useServerFn(adminStats);
   const funil = useServerFn(funilInstrumentacao);
+  const erros = useServerFn(errosInstrumentacao);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin"], queryFn: () => stats() });
   const fq = useQuery({ queryKey: ["admin-funil"], queryFn: () => funil(), enabled: q.data?.allowed === true, retry: false, staleTime: 60_000 });
+  const eq = useQuery({ queryKey: ["admin-erros"], queryFn: () => erros(), enabled: q.data?.allowed === true, retry: false, staleTime: 60_000 });
   const [terms, setTerms] = useState("");
   const [tattooWarning, setTattooWarning] = useState("");
   useEffect(() => { supabase.from("safety_config").select("blocked_terms,tattoo_disclaimer").eq("id", 1).maybeSingle().then(({ data }) => { setTerms((data?.blocked_terms ?? []).join(", ")); setTattooWarning(data?.tattoo_disclaimer ?? ""); }); }, []);
@@ -79,6 +81,12 @@ function Admin() {
         {fq.error && <EstadoErro className="mt-3" titulo="Não foi possível carregar o funil" onTentarNovamente={() => void fq.refetch()} recarregando={fq.isFetching} />}
         {fq.data && (fq.data.ok ? <FunilPainel dados={fq.data} /> : <Aviso tom="atencao" titulo="Funil indisponível" className="mt-3">{fq.data.motivo}</Aviso>)}
       </section>
+      <section><h2 className={TITULO_SECAO}>Erros de tela (24 h)</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Capturados no navegador como <code>erro_tela</code>, agrupados por rota e mensagem. Só caminho e mensagem truncada — sem nomes, e-mails ou conteúdo.</p>
+        {eq.isLoading && <CarregandoInline rotulo="Carregando erros recentes…" className="mt-3" />}
+        {eq.error && <EstadoErro className="mt-3" titulo="Não foi possível carregar os erros" onTentarNovamente={() => void eq.refetch()} recarregando={eq.isFetching} />}
+        {eq.data && (eq.data.ok ? <ErrosPainel dados={eq.data} /> : <Aviso tom="atencao" titulo="Erros indisponíveis" className="mt-3">{eq.data.motivo}</Aviso>)}
+      </section>
       <section><h2 className={TITULO_SECAO}>Status das integrações</h2>
         <ul className="mt-3 space-y-1 text-sm">{CONNECTORS.map(([n, s]) => <li key={n} className="flex justify-between gap-4 border-b py-1"><span>{n}</span><span className="text-right text-muted-foreground">{n?.startsWith("Sugestões") && !d.aiConfigured ? "Não configurado" : s}</span></li>)}</ul></section>
       <section><h2 className={TITULO_SECAO}>Diretrizes de linguagem da Jornada</h2><ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground"><li>Encorajar, nunca cobrar progresso.</li><li>“Não funcionou” é aprendizado.</li><li>Relatórios enfatizam aprendizado, nunca comparação.</li><li>Notas emocionais nunca são exportadas nem compartilhadas; admins não veem fotos, notas ou reflexões.</li></ul></section>
@@ -96,6 +104,40 @@ function Admin() {
 }
 
 type FunilOk = Extract<FunilResposta, { ok: true }>;
+type ErrosOk = Extract<ErrosResposta, { ok: true }>;
+
+function ErrosPainel({ dados }: { dados: ErrosOk }) {
+  return (
+    <div className="mt-3 space-y-5">
+      {dados.alerta && (
+        <Aviso tom="atencao" titulo="Volume de erros acima do normal">
+          {dados.naUltimaHora} erro(s) na última hora e {dados.total} nas últimas {dados.janelaHoras} h.
+          Verifique <code>/api/health</code>, os logs do Vercel e o último deploy antes de convidar mais gente.
+        </Aviso>
+      )}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Cartao compacto><div className="text-sm text-muted-foreground">Últimas {dados.janelaHoras} h</div><div className="font-display text-4xl">{dados.total}</div></Cartao>
+        <Cartao compacto><div className="text-sm text-muted-foreground">Última hora</div><div className="font-display text-4xl">{dados.naUltimaHora}</div></Cartao>
+        <Cartao compacto><div className="text-sm text-muted-foreground">Grupos distintos</div><div className="font-display text-4xl">{dados.grupos.length}</div></Cartao>
+      </div>
+      {dados.grupos.length ? (
+        <ol className="space-y-2">
+          {dados.grupos.map((g) => (
+            <li key={`${g.path}|${g.mensagem}`} className="rounded-md border p-3 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-medium">{g.path}</span>
+                <span className="text-xs text-muted-foreground">{g.total}x · último {fmtDateTime(g.ultimo)}</span>
+              </div>
+              <p className="mt-1 break-words text-xs text-muted-foreground">{g.mensagem}</p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nenhum erro de tela registrado no período.</p>
+      )}
+    </div>
+  );
+}
 
 function FunilPainel({ dados }: { dados: FunilOk }) {
   const inicio = new Date(dados.janela.de).toLocaleDateString("pt-BR");

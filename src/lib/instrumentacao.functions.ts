@@ -41,6 +41,80 @@ export type FunilDia = {
   erros: number;
 };
 
+export type ErrosResposta =
+  | {
+      ok: true;
+      janelaHoras: number;
+      total: number;
+      naUltimaHora: number;
+      /** true quando o volume merece atenção imediata (alerta no painel). */
+      alerta: boolean;
+      grupos: { path: string; mensagem: string; total: number; ultimo: string }[];
+    }
+  | { ok: false; motivo: string };
+
+const JANELA_ERROS_HORAS = 24;
+const LIMITE_ERROS = 500;
+const ALERTA_ULTIMA_HORA = 5;
+const ALERTA_TOTAL_DIA = 20;
+
+/**
+ * Erros de tela dos últimos 24 h, agrupados por rota + mensagem.
+ * Admin-only (service role), sem dado pessoal: só path e mensagem truncada que
+ * a própria instrumentação já limita a 200 caracteres.
+ */
+export const errosInstrumentacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ErrosResposta> => {
+    try {
+      const { data: isAdmin } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "admin",
+      });
+      if (!isAdmin) return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+
+      const agora = Date.now();
+      const inicio = new Date(agora - JANELA_ERROS_HORAS * 60 * 60 * 1000).toISOString();
+      const limiteHora = agora - 60 * 60 * 1000;
+
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin
+        .from("audit_events")
+        .select("created_at, meta")
+        .eq("event", "erro_tela")
+        .gte("created_at", inicio)
+        .order("created_at", { ascending: false })
+        .limit(LIMITE_ERROS);
+      if (error) return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+
+      const linhas = data ?? [];
+      let naUltimaHora = 0;
+      const grupos = new Map<string, { path: string; mensagem: string; total: number; ultimo: string }>();
+      for (const linha of linhas) {
+        const meta = (linha.meta ?? {}) as Record<string, unknown>;
+        const path = typeof meta["path"] === "string" ? meta["path"] : "(desconhecida)";
+        const mensagem = typeof meta["mensagem"] === "string" ? meta["mensagem"] : "(sem mensagem)";
+        if (new Date(linha.created_at).getTime() >= limiteHora) naUltimaHora += 1;
+        const chave = `${path}|${mensagem}`;
+        const atual = grupos.get(chave);
+        if (atual) atual.total += 1;
+        else grupos.set(chave, { path, mensagem, total: 1, ultimo: linha.created_at });
+      }
+
+      const ordenados = [...grupos.values()].sort((a, b) => b.total - a.total).slice(0, 8);
+      return {
+        ok: true,
+        janelaHoras: JANELA_ERROS_HORAS,
+        total: linhas.length,
+        naUltimaHora,
+        alerta: naUltimaHora >= ALERTA_ULTIMA_HORA || linhas.length >= ALERTA_TOTAL_DIA,
+        grupos: ordenados,
+      };
+    } catch {
+      return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+    }
+  });
+
 export type FunilResposta =
   | {
       ok: true;

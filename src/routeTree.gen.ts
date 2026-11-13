@@ -37,6 +37,7 @@ import { Route as AuthenticatedRoupasRouteRouteImport } from './routes/_authenti
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedStudioRouteImport } from './routes/_authenticated/studio'
 import { Route as AuthenticatedTatuagemRouteRouteImport } from './routes/_authenticated/tatuagem/route'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiReferenceImageRouteImport } from './routes/api/reference-image'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as AuthenticatedBriefingSlugRouteImport } from './routes/_authenticated/briefing.$slug'
@@ -230,6 +231,11 @@ const AuthenticatedTatuagemRouteRoute =
     path: '/tatuagem',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiReferenceImageRoute = ApiReferenceImageRouteImport.update({
   id: '/api/reference-image',
   path: '/api/reference-image',
@@ -536,6 +542,7 @@ export interface FileRoutesByFullPath {
   '/retrato': typeof AuthenticatedRetratoRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
   '/p/$slug': typeof PSlugRoute
   '/briefing/$slug': typeof AuthenticatedBriefingSlugRoute
@@ -607,6 +614,7 @@ export interface FileRoutesByTo {
   '/retrato': typeof AuthenticatedRetratoRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/studio': typeof AuthenticatedStudioRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
   '/p/$slug': typeof PSlugRoute
   '/briefing/$slug': typeof AuthenticatedBriefingSlugRoute
@@ -685,6 +693,7 @@ export interface FileRoutesById {
   '/_authenticated/retrato': typeof AuthenticatedRetratoRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/studio': typeof AuthenticatedStudioRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/reference-image': typeof ApiReferenceImageRoute
   '/p/$slug': typeof PSlugRoute
   '/_authenticated/briefing/$slug': typeof AuthenticatedBriefingSlugRoute
@@ -763,6 +772,7 @@ export interface FileRouteTypes {
     | '/retrato'
     | '/settings'
     | '/studio'
+    | '/api/health'
     | '/api/reference-image'
     | '/p/$slug'
     | '/briefing/$slug'
@@ -834,6 +844,7 @@ export interface FileRouteTypes {
     | '/retrato'
     | '/settings'
     | '/studio'
+    | '/api/health'
     | '/api/reference-image'
     | '/p/$slug'
     | '/briefing/$slug'
@@ -911,6 +922,7 @@ export interface FileRouteTypes {
     | '/_authenticated/retrato'
     | '/_authenticated/settings'
     | '/_authenticated/studio'
+    | '/api/health'
     | '/api/reference-image'
     | '/p/$slug'
     | '/_authenticated/briefing/$slug'
@@ -968,6 +980,7 @@ export interface RootRouteChildren {
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   ReembolsoRoute: typeof ReembolsoRoute
   TermosRoute: typeof TermosRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiReferenceImageRoute: typeof ApiReferenceImageRoute
   PSlugRoute: typeof PSlugRoute
 }
@@ -1169,6 +1182,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tatuagem'
       preLoaderRoute: typeof AuthenticatedTatuagemRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/reference-image': {
       id: '/api/reference-image'
@@ -1713,6 +1733,7 @@ const rootRouteChildren: RootRouteChildren = {
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   ReembolsoRoute: ReembolsoRoute,
   TermosRoute: TermosRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiReferenceImageRoute: ApiReferenceImageRoute,
   PSlugRoute: PSlugRoute,
 }
