@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Confirm } from "@/components/Confirm";
 import { EsqueletoLista, EstadoErro, EstadoVazio } from "@/components/estados";
 import { AiLabel, Indicators } from "@/components/PackageView";
 import { CARTAO_CLICAVEL, FOCO, GRADE_CARTOES, TITULO_ITEM } from "@/lib/design";
@@ -20,6 +22,7 @@ const FILTERS = [["all", "todos"], ["new", "novos"], ["saved", "salvos"], ["appr
 
 function Looks() {
   const [f, setF] = useState("all");
+  const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["makeup-looks"],
     queryFn: async () => {
@@ -49,12 +52,26 @@ function Looks() {
           const c = p.content as unknown as AuraPackage;
           const mode = MAKEUP_MODES.find((m) => m.id === (p.context as { mode?: string })?.mode)?.label;
           return (
-            <Link key={p.id} to="/maquiagem/look/$id" params={{ id: p.id }} className={CARTAO_CLICAVEL}>
-              <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{mode}</span><div className="flex items-center gap-2">{p.status !== "new" && <span className="text-accent">{STATUS_LABEL[p.status]}</span>}<AiLabel /></div></div>
-              <h3 className={`mt-2 ${TITULO_ITEM}`}>{c.title}</h3>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{c.invitation}</p>
-              <div className="mt-4"><Indicators c={c} /></div>
-            </Link>
+            <article key={p.id} className={CARTAO_CLICAVEL}>
+              <Link to="/maquiagem/look/$id" params={{ id: p.id }} className="block">
+                <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{mode}</span><div className="flex items-center gap-2">{p.status !== "new" && <span className="text-accent">{STATUS_LABEL[p.status]}</span>}<AiLabel /></div></div>
+                <h3 className={`mt-2 ${TITULO_ITEM}`}>{c.title}</h3>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{c.invitation}</p>
+                <div className="mt-4"><Indicators c={c} /></div>
+              </Link>
+              <div className="mt-3 flex justify-end">
+                <Confirm
+                  label="Excluir look"
+                  desc="Este look de maquiagem será removido permanentemente."
+                  onYes={async () => {
+                    const { error } = await supabase.from("packages").delete().eq("id", p.id);
+                    if (error) { toast.error("Não foi possível excluir o look. Tente de novo."); return; }
+                    toast.success("Look excluído.");
+                    await qc.invalidateQueries({ queryKey: ["makeup-looks"] });
+                  }}
+                />
+              </div>
+            </article>
           );
         })}
       </div>

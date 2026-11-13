@@ -71,6 +71,35 @@ describe("filtrarPorTermo", () => {
   });
 });
 
+describe("busca tolerante a erro de digitação", () => {
+  it("encontra com um erro de digitação em palavra longa", () => {
+    expect(corresponde("Maquiagem", "maquigem")).toBe(true);
+    expect(corresponde("Cabelo e barba", "cabello")).toBe(true);
+  });
+
+  it("encontra por prefixo", () => {
+    expect(corresponde("Maquiagem", "maqui")).toBe(true);
+    expect(corresponde("Briefing de noiva", "brief")).toBe(true);
+  });
+
+  it("aceita várias palavras em qualquer ordem", () => {
+    expect(corresponde("Coleção Verão", "verao colecao")).toBe(true);
+    expect(corresponde("Coleção Verão", "colecao verao")).toBe(true);
+  });
+
+  it("não aproxima demais palavras curtas nem termos diferentes", () => {
+    expect(corresponde("Unha", "uva")).toBe(false);
+    expect(corresponde("Coleção Verão", "coracao")).toBe(false);
+    expect(corresponde("Cabelo", "unha")).toBe(false);
+  });
+
+  it("a lista também se beneficia da tolerância", () => {
+    const campos = (item: ItemBusca) => [item.titulo, item.descricao];
+    expect(filtrarPorTermo(ITENS, "verao", campos).map((i) => i.id)).toEqual(["col-1"]);
+    expect(filtrarPorTermo(ITENS, "lembrete corte", campos).map((i) => i.id)).toEqual(["lem-1"]);
+  });
+});
+
 describe("limitar", () => {
   it("corta a lista no limite pedido", () => {
     expect(limitar([1, 2, 3, 4], 2)).toEqual([1, 2]);
