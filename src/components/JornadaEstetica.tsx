@@ -3,8 +3,11 @@ import { LoaderCircle, Sprout, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Aviso, EstadoErro, EstadoVazio, EsqueletoLista } from '@/components/estados';
+import { CARTAO_COMPACTO, TITULO_SECAO } from '@/lib/design';
 import { supabase } from '@/integrations/supabase/client';
 import { PROCEDIMENTOS, CUIDADOS, criarJornada, listarJornadas, addRegistro, atualizarJornada, excluirJornada, type JornadaEstetica } from '@/lib/estetica.functions';
 
@@ -18,12 +21,13 @@ const diasAte = (iso: string | null) => {
 /**
  * Fatia C4 — Jornada pós-procedimento: diário de evolução com fotos (privadas),
  * data de retorno com contagem regressiva e cuidados por procedimento.
- * RLS fechada: só a própria usuária vê.
+ * RLS fechada: só a própria pessoa vê.
  */
 export function JornadaEstetica({ procedimentoAtual }: { procedimentoAtual?: string | null }) {
   const listar = useServerFn(listarJornadas), criar = useServerFn(criarJornada);
   const addFn = useServerFn(addRegistro), atualizar = useServerFn(atualizarJornada), excluir = useServerFn(excluirJornada);
   const [jornadas, setJornadas] = useState<JornadaEstetica[] | null>(null);
+  const [erroCarga, setErroCarga] = useState(false);
   const [proc, setProc] = useState(procedimentoAtual ?? PROCEDIMENTOS[0]?.id ?? '');
   const [inicio, setInicio] = useState(hoje());
   const [retorno, setRetorno] = useState('');
@@ -34,7 +38,8 @@ export function JornadaEstetica({ procedimentoAtual }: { procedimentoAtual?: str
   const [salvandoReg, setSalvandoReg] = useState('');
 
   async function carregar() {
-    try { setJornadas(await listar()); } catch { setJornadas([]); }
+    setErroCarga(false);
+    try { setJornadas(await listar()); } catch { setErroCarga(true); setJornadas([]); }
   }
   useEffect(() => { void carregar(); }, []);
 
@@ -72,34 +77,43 @@ export function JornadaEstetica({ procedimentoAtual }: { procedimentoAtual?: str
   return (
     <section className="space-y-4" role="region" aria-label="Jornada pós-procedimento">
       <div>
-        <h2 className="text-3xl">🌱 Jornada pós-procedimento</h2>
+        <h2 className={TITULO_SECAO}>🌱 Jornada pós-procedimento</h2>
         <p className="mt-1 text-sm text-muted-foreground">Fez o procedimento? Registre a evolução com fotos (privadas, só suas), acompanhe a data do retorno e os cuidados. É seu histórico — leve no consultório.</p>
       </div>
 
-      <div className="grid gap-2 rounded-lg border bg-card p-4 sm:grid-cols-4 sm:items-end">
+      <div className={`grid gap-2 ${CARTAO_COMPACTO} sm:grid-cols-4 sm:items-end`}>
         <label className="text-sm">Procedimento<select aria-label="Procedimento" className="mt-1 w-full rounded-md border bg-background p-2 text-sm" value={proc} onChange={(e) => setProc(e.target.value)}>{PROCEDIMENTOS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></label>
         <label className="text-sm">Feito em<Input aria-label="Data do procedimento" type="date" className="mt-1" value={inicio} onChange={(e) => setInicio(e.target.value)} /></label>
         <label className="text-sm">Retorno (opcional)<Input aria-label="Data de retorno" type="date" className="mt-1" value={retorno} onChange={(e) => setRetorno(e.target.value)} /></label>
         <Button size="sm" disabled={criando} onClick={() => void comecar()}>{criando ? <LoaderCircle className="size-4 animate-spin" /> : <Sprout className="size-4" />}Começar jornada</Button>
       </div>
-      {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
-
-      {jornadas?.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma jornada ativa. Comece uma quando fizer o procedimento.</p>}
+      {err && <Aviso tom="atencao" titulo="Não foi possível continuar">{err}</Aviso>}
+      {erroCarga && <EstadoErro titulo="Não foi possível carregar suas jornadas" onTentarNovamente={() => void carregar()} />}
+      {jornadas === null && <EsqueletoLista itens={2} colunas={1} altura="h-32" />}
+      {jornadas?.length === 0 && (
+        <EstadoVazio
+          compacto
+          icone={<Sprout className="size-5" />}
+          titulo="Nenhuma jornada ativa"
+          descricao="Comece uma quando fizer o procedimento. Fotos e registros ficam privados, só para você."
+          acoes={<Button size="sm" variant="outline" disabled={criando} onClick={() => void comecar()}>Começar jornada agora</Button>}
+        />
+      )}
       {jornadas?.map((j) => {
         const nome = PROCEDIMENTOS.find((p) => p.id === j.procedimento)?.nome ?? j.procedimento;
         const dias = diasAte(j.retorno_em);
         const aberta = j.status === 'ativa';
         return (
-          <article key={j.id} className="space-y-3 rounded-lg border bg-card p-4">
+          <article key={j.id} className={`space-y-3 ${CARTAO_COMPACTO}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-sm font-medium">{nome} <span className="text-xs text-muted-foreground">· desde {new Date(j.inicio).toLocaleDateString('pt-BR')}</span></p>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${aberta ? 'bg-emerald-500/10 text-emerald-700' : 'bg-secondary'}`}>{aberta ? 'ativa' : j.status}</span>
+                  <Badge variant="outline" className={`px-2 py-0.5 text-xs ${aberta ? 'border-sage/60 bg-sage/15 text-foreground' : 'bg-secondary text-secondary-foreground'}`}>{aberta ? 'ativa' : j.status}</Badge>
                   {aberta && dias !== null && (
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] ${dias <= 7 ? 'bg-amber-500/15 text-amber-700' : 'bg-secondary'}`}>
-                      {dias < 0 ? `retorno era ${new Date(j.retorno_em!).toLocaleDateString('pt-BR')}` : dias === 0 ? 'retorno HOJE' : `retorno em ${dias} dia(s)`}
-                    </span>
+                    <Badge variant="outline" className={`px-2 py-0.5 text-xs ${dias <= 7 ? 'border-ochre/60 bg-ochre/15 text-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                      {dias < 0 ? `retorno era ${new Date(j.retorno_em!).toLocaleDateString('pt-BR')}` : dias === 0 ? 'retorno HOJE' : `retorno em ${dias} ${dias === 1 ? 'dia' : 'dias'}`}
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -110,16 +124,16 @@ export function JornadaEstetica({ procedimentoAtual }: { procedimentoAtual?: str
                     <Button size="sm" variant="outline" onClick={() => void atualizar({ data: { id: j.id, status: 'concluida' } }).then(carregar)}>Concluir</Button>
                   </>
                 )}
-                <Button size="sm" variant="ghost" title="Excluir jornada" onClick={() => { if (confirm('Excluir a jornada e todos os registros?')) void excluir({ data: { id: j.id } }).then(carregar).catch((e) => toast.error(e instanceof Error ? e.message : 'Erro.')); }}><Trash2 className="size-4" /></Button>
+                <Button size="sm" variant="ghost" aria-label="Excluir jornada" title="Excluir jornada" onClick={() => { if (confirm('Excluir a jornada e todos os registros?')) void excluir({ data: { id: j.id } }).then(carregar).catch((e) => toast.error(e instanceof Error ? e.message : 'Erro.')); }}><Trash2 className="size-4" /></Button>
               </div>
             </div>
 
             <details className="rounded-md border bg-background p-3">
               <summary className="cursor-pointer text-xs text-accent">Cuidados gerais com {nome.toLowerCase()}</summary>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-                {(CUIDADOS[j.procedimento] ?? ['Siga as orientações do seu profissional.']).map((c) => <li key={c}>{c}</li>)}
+                {(CUIDADOS[j.procedimento] ?? ['Siga as orientações de quem atende você.']).map((c) => <li key={c}>{c}</li>)}
               </ul>
-              <p className="mt-2 text-[10px] text-amber-700">Orientações genéricas de autocuidado — SEMPRE prevalecem as do profissional que atendeu você.</p>
+              <Aviso tom="atencao" className="mt-2 rounded-md p-2 text-xs">Orientações genéricas de autocuidado — SEMPRE prevalecem as de quem atendeu você.</Aviso>
             </details>
 
             <div className="space-y-2">
@@ -137,7 +151,7 @@ export function JornadaEstetica({ procedimentoAtual }: { procedimentoAtual?: str
                   <Textarea aria-label="Como você está" rows={2} maxLength={2000} placeholder="Como está sentindo hoje? Inchaço, resultado, dúvidas…" value={nota[j.id] ?? ''} onChange={(e) => setNota((x) => ({ ...x, [j.id]: e.target.value }))} />
                   <div className="flex flex-wrap items-center gap-2">
                     <label className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground">
-                      <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => setArquivo((x) => ({ ...x, [j.id]: e.target.files?.[0] ?? null }))} />
+                      <input type="file" aria-label="Anexar foto ao registro" accept="image/png,image/jpeg" className="hidden" onChange={(e) => setArquivo((x) => ({ ...x, [j.id]: e.target.files?.[0] ?? null }))} />
                       📷 {arquivo[j.id] ? arquivo[j.id]?.name : 'anexar foto'}
                     </label>
                     <Button size="sm" disabled={salvandoReg === j.id} onClick={() => void registrar(j)}>{salvandoReg === j.id ? <LoaderCircle className="size-4 animate-spin" /> : null}Registrar</Button>

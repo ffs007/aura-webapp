@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { mensagemDeImagemAmigavel } from "./erros-imagem";
 
 /**
  * Geração de imagens do webapp — pós-migração (2026-10-27): sai pelo gateway próprio
@@ -46,10 +47,11 @@ export async function referenceRequest(request: Request) {
   });
   if (!res.ok) {
     const message = await res.text().catch(() => "");
-    let friendly = "Não foi possível gerar a imagem.";
-    try { friendly = String(JSON.parse(message).error ?? friendly); } catch { /* texto simples */ }
-    await db.from("generated_references").update({ status: "failed", error: friendly, updated_at: new Date().toISOString() }).eq("id", row.id);
-    return new Response(friendly, { status: res.status === 402 || res.status === 403 ? res.status : 502 });
+    let friendly = "";
+    try { friendly = String(JSON.parse(message).error ?? ""); } catch { friendly = message; }
+    const amigavel = mensagemDeImagemAmigavel(friendly);
+    await db.from("generated_references").update({ status: "failed", error: amigavel, updated_at: new Date().toISOString() }).eq("id", row.id);
+    return new Response(amigavel, { status: res.status === 402 || res.status === 403 ? res.status : 502 });
   }
   const body = await res.json() as { image_url?: string };
   if (!body.image_url) {

@@ -23,7 +23,7 @@ export const BodyAvatar = memo(function BodyAvatar({ data, outfit }: { data: Dat
   const body = `M ${cx - sh} 92 Q ${cx - wa - 4} 125 ${cx - wa} 140 Q ${cx - hip - 2} 160 ${cx - hip} 182 L ${cx + hip} 182 Q ${cx + hip + 2} 160 ${cx + wa} 140 Q ${cx + wa + 4} 125 ${cx + sh} 92 Z`;
   const curls = tex === "Cacheado" || tex === "Crespo";
   return (
-    <svg viewBox="0 0 120 260" role="img" aria-label="Avatar ilustrado com base nas suas respostas" className="h-full w-full">
+    <svg viewBox="0 0 120 260" role="img" aria-label="Ilustração do seu perfil com base nas suas respostas" className="h-full w-full">
       <ellipse cx={cx} cy={252} rx={34} ry={4} className="fill-foreground/10" />
       <g style={{ transform: `scale(${scale})`, transformOrigin: "60px 250px", transition: "transform .3s ease" }}>
         <g style={{ transition: "all .3s ease" }}>

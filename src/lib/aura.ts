@@ -1,5 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import type { Outfit } from "./clothing";
+import { planToMarkdown as hairPlanToMarkdown, type HairPlan } from "./hair";
+import { lookToMarkdown } from "./manual";
+import type { MakeupLook } from "./makeup";
 
 export const ENTRY_MODES = [
   { id: "general", label: "Transformação geral", hint: "Uma evolução gentil e gradual" },
@@ -25,8 +29,8 @@ export const MODULES = [
 
 export const EMOTIONAL_MODES = [
   { id: "gentle", label: "Com delicadeza", hint: "Quero conforto e passos pequenos" },
-  { id: "curious", label: "Curiosa(o)", hint: "Me mostre possibilidades" },
-  { id: "brave", label: "Corajosa(o)", hint: "Estou aberta(o) a algo mais ousado" },
+  { id: "curious", label: "Curiosidade", hint: "Me mostre possibilidades" },
+  { id: "brave", label: "Coragem", hint: "Topo algo mais ousado" },
   { id: "tired", label: "Pouca energia", hint: "Que seja sem esforço" },
   { id: "celebrating", label: "Celebrando", hint: "Quero me sentir especial" },
 ] as const;
@@ -100,21 +104,91 @@ export async function bumpSignals(n = 1) {
   await supabase.from("visual_dna").upsert({ user_id: data.user.id, signals_since_review: (row?.signals_since_review ?? 0) + n, updated_at: new Date().toISOString() });
 }
 
-export function packageToMarkdown(p: PackageRow) {
-  const c = p.content;
+const asRecord = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
+const textOf = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+const stringsOf = (v: unknown) => (Array.isArray(v) ? v.map(textOf).filter(Boolean) : []);
+const NOT_APPLICABLE = /^não se aplica[.!]?$/i;
+const fallbackMarkdown = `# Sugestão Aura ID\n\nNão foi possível formatar este conteúdo automaticamente. Abra a sugestão no app para ver todos os detalhes.`;
+
+/** Fallback para qualquer conteúdo legado/desconhecido: título, resumo, passos e notas. */
+function genericMarkdown(p: PackageRow) {
+  const c = asRecord(p.content);
+  const variations = Array.isArray(c["variations"]) ? c["variations"].map((v) => asRecord(v)) : [];
+  const title = textOf(c["title"]) || "Sugestão Aura ID";
+  const invitation = textOf(c["invitation"]) || textOf(c["summary"]);
+  const why = textOf(c["why_it_works"]);
+  const cost = textOf(c["cost"]), maintenance = textOf(c["maintenance"]), reversibility = textOf(c["reversibility"]);
+  const adaptation = textOf(c["adaptation_time"]), costNote = textOf(c["cost_note"]);
+  const steps = stringsOf(c["steps"]), checklist = stringsOf(c["event_checklist"]), risks = stringsOf(c["risks"]);
+  const professional = textOf(c["professional_validation_note"]);
   return [
-    `# ${c.title}`, `_Sugestão gerada por IA — um convite, não uma regra._`, ``, c.invitation, ``,
-    `**Por que pode funcionar:** ${c.why_it_works}`, ``,
-    ...c.variations.flatMap((v) => [
-      `## ${LEVEL_LABEL[v.level] ?? v.level} — ${v.summary}`,
-      ...([["Roupas", v.clothing], ["Maquiagem", v.makeup], ["Cabelo", v.hair], ["Barba", v.beard], ["Acessórios", v.accessories], ["Visibilidade de tatuagem", v.tattoo_visibility]] as const).filter(([, text]) => text && !/^não se aplica[.!]?$/i.test(text.trim())).map(([label, text]) => `- ${label}: ${text}`), ``,
-    ]),
-    `**Custo:** ${LEVEL3[c.cost]} (${c.cost_note}) · **Manutenção:** ${LEVEL3[c.maintenance]} · **Reversibilidade:** ${REVERSIBILITY[c.reversibility]} · **Adaptação:** ${c.adaptation_time}`, ``,
-    `## Passo a passo`, ...c.steps.map((s, i) => `${i + 1}. ${s}`),
-    ...(c.event_checklist.length ? [``, `## Checklist do evento`, ...c.event_checklist.map((s) => `- [ ] ${s}`)] : []),
-    ...(c.risks.length ? [``, `## Pontos de atenção`, ...c.risks.map((s) => `- ${s}`)] : []),
-    ...(p.note ? [``, `## Minhas notas`, p.note] : []),
+    `# ${title}`, `_Sugestão gerada por IA — um convite, não uma regra._`, ``,
+    ...(invitation ? [invitation, ``] : []),
+    ...(why ? [`**Por que pode funcionar:** ${why}`, ``] : []),
+    ...variations.flatMap((v) => {
+      const level = textOf(v["level"]), summary = textOf(v["summary"]);
+      const fields = ([["Roupas", textOf(v["clothing"])], ["Maquiagem", textOf(v["makeup"])], ["Cabelo", textOf(v["hair"])], ["Barba", textOf(v["beard"])], ["Acessórios", textOf(v["accessories"])], ["Visibilidade de tatuagem", textOf(v["tattoo_visibility"])]] as const).filter(([, text]) => text && !NOT_APPLICABLE.test(text));
+      return [`## ${LEVEL_LABEL[level] ?? level}${summary ? ` — ${summary}` : ""}`, ...fields.map(([label, text]) => `- ${label}: ${text}`), ``];
+    }),
+    ...(cost || maintenance || reversibility || adaptation ? [`**Custo:** ${LEVEL3[cost] || cost || "—"}${costNote ? ` (${costNote})` : ""} · **Manutenção:** ${LEVEL3[maintenance] || maintenance || "—"} · **Reversibilidade:** ${REVERSIBILITY[reversibility] || reversibility || "—"}${adaptation ? ` · **Adaptação:** ${adaptation}` : ""}`, ``] : []),
+    ...(steps.length ? [`## Passo a passo`, ...steps.map((s, i) => `${i + 1}. ${s}`), ``] : []),
+    ...(checklist.length ? [`## Checklist do evento`, ...checklist.map((s) => `- [ ] ${s}`), ``] : []),
+    ...(risks.length ? [`## Pontos de atenção`, ...risks.map((s) => `- ${s}`), ``] : []),
+    ...(professional ? [`**Validar com profissional:** ${professional}`, ``] : []),
+    ...(p.note ? [`## Minhas notas`, p.note, ``] : []),
   ].join("\n");
+}
+
+/** Outfit (Roupas) não tem conversor próprio em clothing.ts — template com os campos reais. */
+function outfitToMarkdown(o: Outfit, note?: string | null) {
+  const versions = Array.isArray(o.versions) ? o.versions : [];
+  const weather = Array.isArray(o.weather_variants) ? o.weather_variants : [];
+  const colors = stringsOf(o.colors), textures = stringsOf(o.textures), accessories = stringsOf(o.accessories);
+  return [
+    `# ${textOf(o.title) || "Look"}`, `_Sugestão gerada por IA — um convite, não uma regra._`, ``,
+    ...(textOf(o.invitation) ? [textOf(o.invitation), ``] : []),
+    ...(textOf(o.why_it_works) ? [`**Por que pode funcionar:** ${textOf(o.why_it_works)}`, ``] : []),
+    ...(textOf(o.occasion) || typeof o.formality === "number" ? [`**Ocasião:** ${textOf(o.occasion) || "—"} · **Formalidade:** ${typeof o.formality === "number" ? `${o.formality}/5` : "—"}`] : []),
+    ...(colors.length || textures.length ? [`**Cores:** ${colors.join(", ") || "—"} · **Texturas:** ${textures.join(", ") || "—"}`] : []),
+    ...(textOf(o.proportions) ? [`**Proporções:** ${textOf(o.proportions)}`] : []),
+    ...(textOf(o.shoes) || textOf(o.bag) ? [`**Calçado:** ${textOf(o.shoes) || "—"} · **Bolsa:** ${textOf(o.bag) || "—"}`] : []),
+    ...(accessories.length ? [`**Acessórios:** ${accessories.join(", ")}`] : []),
+    ``,
+    ...versions.flatMap((v) => [
+      `## ${LEVEL_LABEL[v.level] ?? v.level}${textOf(v.summary) ? ` — ${textOf(v.summary)}` : ""}`,
+      ...(Array.isArray(v.pieces) ? v.pieces : []).map((piece) => `- ${textOf(piece.piece)}${textOf(piece.role) ? ` (${textOf(piece.role)})` : ""}${piece.from_wardrobe ? " · do seu guarda-roupa" : ""}`), ``,
+    ]),
+    ...(weather.length ? [`## Variações de clima`, ...weather.map((w) => `- ${textOf(w.weather)}: ${textOf(w.change)}`), ``] : []),
+    ...(textOf(o.comfort_note) ? [`**Conforto:** ${textOf(o.comfort_note)}`, ``] : []),
+    ...(note ? [`## Minhas notas`, note, ``] : []),
+  ].join("\n");
+}
+
+/** Guia de salão do cabelo + rotina/avisos que o conversor do módulo não inclui. */
+function hairPlanToMarkdownWithNotes(p: HairPlan, note?: string | null) {
+  const routine = Array.isArray(p.routine) ? p.routine : [];
+  const warnings = stringsOf(p.warnings);
+  return [
+    hairPlanToMarkdown(p),
+    ...(routine.length ? ["", "## Rotina em casa", ...routine.flatMap((r) => [`### ${textOf(r.frequency)}`, ...stringsOf(r.steps).map((s) => `- ${s}`)])] : []),
+    ...(warnings.length ? ["", "## Pontos de atenção", ...warnings.map((w) => `- ${w}`)] : []),
+    ...(note ? ["", "## Minhas notas", note] : []),
+  ].join("\n");
+}
+
+/** Markdown por tipo de conteúdo; nunca lança: conversor do tipo → fallback genérico → aviso curto. */
+export function packageToMarkdown(p: PackageRow) {
+  const tryConvert = (fn: () => string) => {
+    try { const md = fn(); if (md && md.trim()) return md; } catch { /* conversor do tipo falhou — usa o fallback */ }
+    return null;
+  };
+  const byKind: Record<string, () => string> = {
+    makeup_look: () => lookToMarkdown(p.content as unknown as MakeupLook, p.note),
+    hair_plan: () => hairPlanToMarkdownWithNotes(p.content as unknown as HairPlan, p.note),
+    outfit: () => outfitToMarkdown(p.content as unknown as Outfit, p.note),
+  };
+  const converter = p.kind ? byKind[p.kind] : undefined;
+  return (converter && tryConvert(converter)) || tryConvert(() => genericMarkdown(p)) || fallbackMarkdown;
 }
 
 export function downloadText(filename: string, text: string, type = "text/markdown") {

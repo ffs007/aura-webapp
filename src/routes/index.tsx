@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { CabecalhoPagina } from "@/components/estados";
+import { TITULO_ITEM } from "@/lib/design";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,17 +33,18 @@ function Landing() {
       </header>
       <main className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-8 md:grid-cols-2">
         <div className="animate-rise">
-          <p className="mb-4 text-sm uppercase tracking-[0.2em] text-accent">Identidade visual pessoal</p>
-          <h1 className="text-5xl leading-[1.05] md:text-7xl">Um jeito mais gentil de <em>se tornar</em> quem você quer mostrar.</h1>
-          <p className="mt-6 max-w-md text-lg text-muted-foreground">
-            A Aura ID une roupas, maquiagem, cabelo, acessórios e até a visibilidade de tatuagens em looks coerentes — cada um com versões segura, intermediária e ousada para explorar no seu ritmo.
-          </p>
+          <CabecalhoPagina
+            antes={<p className="mb-4 text-sm uppercase tracking-[0.2em] text-accent">Identidade visual pessoal</p>}
+            titulo={<>Um jeito mais gentil de <em>se tornar</em> quem você quer mostrar.</>}
+            descricao={<>A Aura ID une roupas, maquiagem, cabelo, acessórios e até a visibilidade de tatuagens em looks coerentes — cada um com versões seguras, intermediárias e ousadas para explorar no seu ritmo.</>}
+            className="[&_h1]:text-5xl [&_h1]:leading-[1.05] md:[&_h1]:text-7xl [&>div>div>p]:mt-6 [&>div>div>p]:max-w-md [&>div>div>p]:text-lg"
+          />
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg"><Link to="/auth">Começar meu perfil</Link></Button>
             <Button asChild size="lg" variant="outline"><a href="#principios">Nossos princípios</a></Button>
           </div>
         </div>
-        {/* Hero em CSS até existir src/assets/hero.jpg no projeto (binário não veio no export do Lovable).
+        {/* Hero em CSS até existir src/assets/hero.jpg no projeto (binário não veio no export inicial).
             Para voltar à foto: adicione o arquivo e restaure `import hero from "@/assets/hero.jpg"` + <img>. */}
         <div className="animate-rise relative aspect-square w-full overflow-hidden rounded-[2rem] shadow-soft" role="img" aria-label="Lenço de seda, brinco e amostras de tecido sobre linho">
           <div className="absolute inset-0 bg-gradient-to-br from-[#efe6d8] via-[#e8dccb] to-[#dcc9b4]" />
@@ -56,13 +59,13 @@ function Landing() {
         <div className="grid gap-6 md:grid-cols-4">
           {principles.map(([t, d]) => (
             <div key={t} className="rounded-2xl border bg-card/70 p-6 backdrop-blur">
-              <h3 className="text-2xl">{t}</h3>
+              <h3 className={TITULO_ITEM}>{t}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{d}</p>
             </div>
           ))}
         </div>
         <p className="mt-10 text-center text-xs text-muted-foreground">
-          Provadores fotorrealistas, simulação de penteados, realidade aumentada ao vivo, simulação de tatuagem em movimento e correção por vídeo ao vivo: [FORA DO ESCOPO DOS CONECTORES LOVABLE].
+          Provador fotorrealista, simulação de penteados, realidade aumentada ao vivo, simulação de tatuagem em movimento e correção por vídeo ao vivo estão no nosso roteiro e ainda não fazem parte desta versão.
         </p>
       </section>
     </div>

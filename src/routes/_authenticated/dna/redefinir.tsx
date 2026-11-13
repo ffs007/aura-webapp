@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Confirm } from "@/components/Confirm";
+import { CARTAO_COMPACTO, TITULO_ITEM } from "@/lib/design";
 import { downloadText, logEvent } from "@/lib/aura";
 
 export const Route = createFileRoute("/_authenticated/dna/redefinir")({
@@ -17,9 +18,9 @@ function Reset() {
 
   async function run(label: string, fn: () => PromiseLike<{ error: unknown }>, scope: string) {
     const { error } = await fn();
-    if (error) { toast.error(`Não foi possível ${label}.`); return; }
+    if (error) { toast.error(`Não foi possível ${label}. Tente de novo.`); return; }
     await logEvent("data_deleted", { scope });
-    toast.success("Feito");
+    toast.success("Concluído");
     qc.invalidateQueries();
   }
 
@@ -38,13 +39,13 @@ function Reset() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="rounded-2xl border bg-card p-5">
-        <h2 className="text-2xl">Exportar meus dados</h2>
+      <div className={CARTAO_COMPACTO}>
+        <h2 className={TITULO_ITEM}>Exportar meus dados</h2>
         <p className="text-sm text-muted-foreground">Baixe um arquivo com seu perfil, preferências, DNA Visual, versões, correções, feedback e sugestões. As fotos em si não entram no arquivo — só as referências a elas.</p>
         <Button className="mt-3" variant="secondary" onClick={exportAll}>Baixar (JSON)</Button>
       </div>
-      <div className="rounded-2xl border bg-card p-5 space-y-3">
-        <h2 className="text-2xl">Redefinir</h2>
+      <div className={`${CARTAO_COMPACTO} space-y-3`}>
+        <h2 className={TITULO_ITEM}>Redefinir</h2>
         <p className="text-sm text-muted-foreground">Recomece seu DNA Visual mantendo o perfil e as preferências.</p>
         <div className="flex flex-wrap gap-2">
           <Confirm label="Redefinir DNA Visual" action="Redefinir" desc="Apaga o resumo e os sinais atuais. Perfil, preferências e versões antigas continuam." onYes={resetDna} />

@@ -15,6 +15,8 @@ export const LIMITES: Record<string, number> = {
   'webapp.modelo.render': 2,
   'webapp.tryon.render': 2,
   'webapp.ink.tryon': 2,
+  // Medição + simulação de estética: até aqui a tela não tinha contador nenhum.
+  'webapp.estetica.sim': 2,
 };
 
 const AI_RUNS_URL = 'https://oyfqecigqrceijoxggqw.supabase.co/rest/v1/ai_runs';

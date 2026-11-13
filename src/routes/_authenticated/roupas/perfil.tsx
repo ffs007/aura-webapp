@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EsqueletoDetalhe } from "@/components/estados";
+import { PILHA_PAGINA } from "@/lib/design";
 import { logEvent } from "@/lib/aura";
 
 const META = "Imagem desejada, profissão, rotina, clima, dress code e orçamento.";
@@ -36,16 +37,16 @@ function Profile() {
   useEffect(() => { if (q.data) setF(Object.fromEntries(FIELDS.map(([k]) => [k, q.data?.[k] ?? ""])) as F); }, [q.data]);
   async function save() {
     const { error } = await supabase.from("style_profiles").upsert({ user_id: user.id, ...f, updated_at: new Date().toISOString() });
-    if (error) { toast.error("Não foi possível salvar."); return; }
+    if (error) { toast.error("Não foi possível salvar o perfil. Tente de novo."); return; }
     if (!q.data) await logEvent("onboarding_completed", { module: "clothing" });
     toast.success("Perfil de estilo salvo"); qc.invalidateQueries();
   }
-  if (q.isLoading) return <Skeleton className="h-96 rounded-2xl" />;
+  if (q.isLoading) return <EsqueletoDetalhe />;
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className={PILHA_PAGINA}>
       <p className="text-sm text-muted-foreground">Cores preferidas e rejeitadas vêm das suas <Link to="/settings" className="underline">preferências gerais</Link> e do DNA Visual, se autorizado.</p>
       <div className="grid gap-4 sm:grid-cols-2">
-        {FIELDS.map(([k, l, ph]) => <div key={k} className="space-y-2"><Label>{l}</Label><Input value={f[k] ?? ""} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>)}
+        {FIELDS.map(([k, l, ph]) => <div key={k} className="space-y-2"><Label htmlFor={`roupas-perfil-${k}`}>{l}</Label><Input id={`roupas-perfil-${k}`} value={f[k] ?? ""} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>)}
       </div>
       <Button onClick={save}>Salvar perfil</Button>
     </div>

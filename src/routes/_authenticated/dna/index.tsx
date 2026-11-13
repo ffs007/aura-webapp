@@ -2,12 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { Dna, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { AiLabel } from "@/components/PackageView";
+import { Aviso, Cartao, EstadoErro, EstadoVazio, EsqueletoDetalhe } from "@/components/estados";
+import { FOCO, GRADE_CARTOES, META, ROTULO_CATEGORIA, TITULO_SECAO } from "@/lib/design";
 import { DNA_FIELDS, fmtDateTime, logEvent, MODULES, type DnaSummary } from "@/lib/aura";
 import { synthesizeDna } from "@/lib/aura.functions";
 
@@ -39,7 +41,7 @@ function Summary() {
 
   async function generate() {
     setBusy(true);
-    const r = await synth().catch(() => ({ error: "Algo deu errado." }));
+    const r = await synth().catch(() => ({ error: "Não foi possível gerar o DNA Visual. Tente de novo." }));
     setBusy(false);
     if (r.error) { toast.error(r.error); return; }
     toast.success("DNA Visual atualizado");
@@ -52,7 +54,7 @@ function Summary() {
     const next = { ...s, [key]: value } as DnaSummary;
     const now = new Date().toISOString();
     const { error } = await supabase.from("visual_dna").update({ summary: next as never, updated_at: now }).eq("user_id", user.id);
-    if (error) { toast.error("Não foi possível salvar a correção."); return; }
+    if (error) { toast.error("Não foi possível salvar a correção. Tente de novo."); return; }
     await supabase.from("dna_corrections").insert({ user_id: user.id, field: key, original: typeof original === "string" ? original : JSON.stringify(original), correction: removed ? "(removido — inferência errada)" : typeof value === "string" ? value : JSON.stringify(value) });
     await supabase.from("dna_versions").insert({ user_id: user.id, summary: next as never, source: "edit" });
     await logEvent("inference_corrected", { field: key, removed });
@@ -62,47 +64,56 @@ function Summary() {
     qc.invalidateQueries({ queryKey: ["dna"] });
   }
 
-  if (q.isLoading) return <Skeleton className="h-96 rounded-2xl" />;
-  if (q.error || !q.data) return <p className="text-destructive">Não foi possível carregar seu DNA Visual.</p>;
+  if (q.isLoading) return <EsqueletoDetalhe />;
+  if (q.error || !q.data) return (
+    <EstadoErro
+      titulo="Não foi possível carregar seu DNA Visual."
+      onTentarNovamente={() => void q.refetch()}
+      recarregando={q.isFetching}
+    />
+  );
   const { on, paused, summary } = q.data;
 
   if (!on) return (
-    <div className="rounded-2xl border bg-secondary p-6">
-      <h2 className="text-3xl">A personalização entre módulos está desligada</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Sem ela, não sintetizamos um DNA Visual e as sugestões não usam seu histórico. Você pode ativá-la quando quiser.</p>
-      <Button asChild className="mt-4"><Link to="/dna/permissoes">Abrir permissões</Link></Button>
-    </div>
+    <EstadoVazio
+      icone={<ShieldOff />}
+      titulo="A personalização entre módulos está desligada"
+      descricao="Sem ela, não sintetizamos um DNA Visual e as sugestões não usam seu histórico. Você pode ativá-la quando quiser."
+      acoes={<Button asChild><Link to="/dna/permissoes">Abrir permissões</Link></Button>}
+    />
   );
 
   return (
     <div className="space-y-6">
-      {paused && <div className="rounded-2xl border bg-secondary p-4 text-sm">Seu DNA Visual está <strong>pausado</strong>: continua guardado, mas não é usado nas sugestões nem recebe novos sinais. <Link to="/dna/permissoes" className="underline">Retomar</Link></div>}
+      {paused && <Aviso tom="neutro">Seu DNA Visual está <strong>pausado</strong>: continua guardado, mas não é usado nas sugestões nem recebe novos sinais. <Link to="/dna/permissoes" className="underline">Retomar</Link></Aviso>}
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="accent" onClick={generate} disabled={busy}>{busy ? "Sintetizando…" : summary ? "Atualizar resumo" : "Gerar meu DNA Visual"}</Button>
-        {q.data.updated && summary && <span className="text-xs text-muted-foreground">Atualizado em {fmtDateTime(q.data.updated)}</span>}
+        {q.data.updated && summary && <span className={META}>Atualizado em {fmtDateTime(q.data.updated)}</span>}
       </div>
 
       {!summary ? (
-        <div className="rounded-2xl border border-dashed p-10 text-center">
-          <h2 className="text-3xl">Seu DNA Visual ainda não foi gerado</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Ele é criado só a partir do que você autorizou: perfil, preferências, reações e feedback. Complete suas <Link to="/dna/preferencias" className="underline">preferências</Link> para um resumo mais fiel.</p>
-        </div>
+        <EstadoVazio
+          tom="destaque"
+          icone={<Dna />}
+          titulo="Seu DNA Visual ainda não foi gerado"
+          descricao={<>Ele é criado só a partir do que você autorizou: perfil, preferências, reações e feedback. Complete suas <Link to="/dna/preferencias" className="underline">preferências</Link> para um resumo mais fiel.</>}
+        />
       ) : (
         <>
-          <div className="rounded-2xl border bg-card p-6 shadow-soft">
+          <Cartao>
             <div className="flex items-center justify-between"><AiLabel /></div>
             <h2 className="mt-3 text-4xl">{summary.headline}</h2>
             <p className="mt-2 text-sm text-muted-foreground"><strong>De onde veio:</strong> {summary.explanation}</p>
             <p className="mt-3 text-xs italic text-muted-foreground">Isto são hipóteses sobre o que tem funcionado para você — não regras, nem verdades objetivas.</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          </Cartao>
+          <div className={GRADE_CARTOES}>
             {DNA_FIELDS.map((f) => {
               const val = summary[f.key];
               const text = Array.isArray(val) ? val.join(", ") : String(val ?? "");
               const isEditing = editing === f.key;
               return (
-                <div key={f.key} className="rounded-2xl border bg-card p-5">
-                  <div className="text-xs uppercase tracking-widest text-accent">{f.label}</div>
+                <Cartao compacto key={f.key}>
+                  <div className={ROTULO_CATEGORIA}>{f.label}</div>
                   {isEditing ? (
                     <div className="mt-2 space-y-2">
                       <Textarea rows={3} value={draft} onChange={(e) => setDraft(e.target.value)} />
@@ -121,12 +132,12 @@ function Summary() {
                       </div>
                     </>
                   )}
-                </div>
+                </Cartao>
               );
             })}
           </div>
-          <div className="rounded-2xl border bg-card p-6">
-            <h3 className="text-3xl">Notas por módulo</h3>
+          <Cartao>
+            <h3 className={TITULO_SECAO}>Notas por módulo</h3>
             <div className="mt-3 grid gap-4 md:grid-cols-2">
               {MODULES.filter((m) => m.id !== "professional").map((m) => {
                 const k = m.id as keyof DnaSummary["module_notes"];
@@ -135,12 +146,12 @@ function Summary() {
                   <div key={m.id} className="text-sm">
                     <div className="font-medium">{m.label}</div>
                     <p className="text-muted-foreground">{v || "Ainda não sabemos."}</p>
-                    {v && <button className="mt-1 text-xs underline" onClick={() => saveField("module_notes", summary.module_notes, { ...summary.module_notes, [k]: "" }, true)}>Isso está errado</button>}
+                    {v && <button className={`mt-1 text-xs underline ${FOCO}`} onClick={() => saveField("module_notes", summary.module_notes, { ...summary.module_notes, [k]: "" }, true)}>Isso está errado</button>}
                   </div>
                 );
               })}
             </div>
-          </div>
+          </Cartao>
         </>
       )}
     </div>

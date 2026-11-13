@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { LoaderCircle, Send } from 'lucide-react';
+import { LoaderCircle, PenTool, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useServerFn } from '@tanstack/react-start';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { QuotaChip } from '@/components/QuotaChip';
+import { PaywallCard } from '@/components/PaywallCard';
+import { Aviso, CabecalhoPagina, EsqueletoLista, EstadoVazio } from '@/components/estados';
+import { FOCO, META, PILHA_PAGINA, TITULO_ITEM } from '@/lib/design';
 import { supabase } from '@/integrations/supabase/client';
-import { AURA_PASS_PRECO } from '@/lib/stripe.functions';
 import { enviarBriefing } from '@/lib/profissionais.functions';
 import { listarVitrine, copiarDesign, ESTILOS_VITRINE, type DesignVitrine, type CopiadoDesign } from '@/lib/vitrine.functions';
 
@@ -57,7 +60,7 @@ function Page() {
       setProvas((xs) => ({ ...xs, [d.id]: r }));
       window.dispatchEvent(new Event('aura:quota'));
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Não foi possível aplicar agora.';
+      const msg = e instanceof Error ? e.message : 'Não foi possível aplicar o design. Tente de novo.';
       setPaywall(/gratuitas|Aura Pass/i.test(msg));
       toast.error(msg);
     } finally { setProvando(''); }
@@ -79,42 +82,51 @@ function Page() {
       const texto = `A cliente viu o design "${p.titulo}"${p.estilo ? ` (estilo ${p.estilo})` : ''} na vitrine e quer essa tatuagem.\n\n- Design: ${p.titulo}\n- Local desejado: ${p.local_sugerido ?? 'a combinar com o estúdio'}\n- Tamanho de referência: ${p.tamanho ?? 'a definir'}\n- Imagem anexa: simulação da tatuagem NO CORPO da cliente (gerada por IA — usar como referência da intenção, não como molde final).\n\nPerguntas da cliente: tamanho ideal para o local? o design precisa de adaptação? dá em uma sessão?`;
       await enviar({ data: { professional_id: p.professional_id, modulo: 'tatuagem', titulo: `Quero esse design: ${p.titulo}`, texto, ...(fotoUrl ? { foto_url: fotoUrl } : {}) } });
       toast.success(`Briefing enviado para ${p.estudio}! A resposta aparece em Profissionais → Meus envios.`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível enviar o briefing.'); } finally { setEnviando(''); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Não foi possível enviar o briefing. Tente de novo.'); } finally { setEnviando(''); }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <span className="text-sm text-accent">Aura ID · Tatuagem</span>
-        <h1 className="mt-2 text-4xl">🖤 Vitrine dos estúdios</h1>
-        <p className="mt-2 text-muted-foreground">Designs publicados pelas tatuadoras da rede. Achou o seu? <strong>Copie pra você</strong>: a IA aplica no seu corpo (use seu 👤 Meu Modelo) — e com um clique o briefing vai direto pro estúdio.</p>
-        <div className="mt-2"><QuotaChip tasks={['webapp.ink.tryon']} /></div>
+    <div className={PILHA_PAGINA}>
+      <div className="space-y-2">
+        <CabecalhoPagina
+          sobretitulo="Aura ID · Tatuagem"
+          titulo="🖤 Vitrine dos estúdios"
+          descricao={<>Designs publicados pelas tatuadoras da rede. Achou o seu? <strong>Copie pra você</strong>: a IA aplica no seu corpo (use seu 👤 Meu Modelo) — e com um clique o briefing vai direto pro estúdio.</>}
+        />
+        <QuotaChip tasks={['webapp.ink.tryon']} />
         {!temCorpo && (
-          <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700">
+          <Aviso tom="atencao">
             Para copiar um design pro seu corpo, crie seu <Link to="/modelo" className="underline">👤 Meu Modelo</Link> primeiro (foto do corpo).
-          </p>
+          </Aviso>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => void carregar('')} className={`rounded-full px-3 py-1 text-sm ${estilo === '' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>Todos</button>
+        <button onClick={() => void carregar('')} aria-pressed={estilo === ''} className={`rounded-full px-3 py-1 text-sm ${FOCO} ${estilo === '' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>Todos</button>
         {ESTILOS_VITRINE.map((e) => (
-          <button key={e} onClick={() => void carregar(e)} className={`rounded-full px-3 py-1 text-sm capitalize ${estilo === e ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>{e}</button>
+          <button key={e} onClick={() => void carregar(e)} aria-pressed={estilo === e} className={`rounded-full px-3 py-1 text-sm capitalize ${FOCO} ${estilo === e ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>{e}</button>
         ))}
       </div>
 
-      {carregando && <p className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" /> Carregando…</p>}
-      {designs?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum design publicado ainda{estilo ? ` no estilo ${estilo}` : ''}. Convide seu estúdio — publicar é grátis.</p>}
+      {carregando && <EsqueletoLista colunas={3} itens={6} altura="h-64" />}
+      {designs?.length === 0 && (
+        <EstadoVazio
+          compacto
+          icone={<PenTool className="size-6" />}
+          titulo={`Nenhum design publicado ainda${estilo ? ` no estilo ${estilo}` : ''}`}
+          descricao="Convide seu estúdio — publicar é grátis."
+        />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {designs?.map((d) => (
-          <article key={d.id} className="flex flex-col overflow-hidden rounded-xl border bg-card">
+          <article key={d.id} className="flex flex-col overflow-hidden rounded-2xl border bg-card">
             <img src={d.imagem_url} alt={d.titulo} className="aspect-square w-full bg-secondary object-contain" loading="lazy" />
             <div className="flex flex-1 flex-col gap-2 p-4">
               <div>
-                {d.destaque > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-700">Patrocinado</span>}
-                <h2 className="text-lg font-medium">{d.titulo}</h2>
-                <p className="text-xs text-muted-foreground">
+                {d.destaque > 0 && <Badge variant="secondary">Patrocinado</Badge>}
+                <h2 className={`mt-1 ${TITULO_ITEM}`}>{d.titulo}</h2>
+                <p className={META}>
                   {d.estilo ? `${d.estilo} · ` : ''}{d.local_sugerido ?? 'local a combinar'}{d.tamanho ? ` · ${d.tamanho}` : ''}
                 </p>
                 {d.estudio && (
@@ -124,18 +136,18 @@ function Page() {
                       : <>{d.estudio}{d.verificado ? ' ✓' : ''}</>}
                   </p>
                 )}
-                {d.descricao && <p className="mt-1 text-xs text-muted-foreground">{d.descricao}</p>}
+                {d.descricao && <p className={`mt-1 ${META}`}>{d.descricao}</p>}
               </div>
               <Button size="sm" className="w-full" disabled={!!provando} onClick={() => void copiarPraMim(d)}>
-                {provando === d.id ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                {provando === d.id ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : null}
                 {provando === d.id ? 'Aplicando em você…' : 'Copiar pra mim'}
               </Button>
               {provas[d.id] && (
                 <div className="space-y-2 rounded-md border border-accent/40 bg-accent/5 p-2" role="region" aria-label={`Simulação de ${d.titulo}`}>
                   <img src={provas[d.id]?.image_url} alt={`Você com ${d.titulo}`} className="aspect-[2/3] w-full rounded object-contain" />
-                  <p className="text-xs text-muted-foreground">Simulação no seu corpo · gerada por IA</p>
+                  <p className={META}>Simulação no seu corpo · gerada por IA</p>
                   <Button size="sm" className="w-full" disabled={!!enviando} onClick={() => void queroEssa(d)}>
-                    {enviando === d.id ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    {enviando === d.id ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Send aria-hidden className="size-4" />}
                     Quero essa — enviar pro estúdio
                   </Button>
                 </div>
@@ -145,13 +157,7 @@ function Page() {
         ))}
       </div>
 
-      {paywall && (
-        <div role="region" aria-label="Aura Pass" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
-          <p className="text-sm font-medium">Seus testes grátis acabaram ✨</p>
-          <p className="mt-1 text-xs text-muted-foreground">O Aura Pass libera as provas de tatuagem — Pix ou cartão, cancele quando quiser.</p>
-          <Button asChild size="sm" className="mt-3"><Link to="/aura-pass">Desbloquear com Aura Pass · {AURA_PASS_PRECO}</Link></Button>
-        </div>
-      )}
+      <PaywallCard mensagem={paywall ? 'Seus testes grátis acabaram — o Aura Pass libera as provas de tatuagem.' : null} />
     </div>
   );
 }

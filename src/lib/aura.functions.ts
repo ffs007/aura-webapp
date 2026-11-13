@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 import { callJson } from "./ai.server";
 import { PRESENTATION_RULES, presentationContext } from "./presentation";
 
@@ -149,23 +150,278 @@ export const synthesizeDna = createServerFn({ method: "POST" })
     return { error: null };
   });
 
+/**
+ * Exclusão definitiva da conta (LGPD): apaga primeiro os objetos do Storage
+ * (fotos privadas em `user-photos` e designs da vitrine em `studio-media`),
+ * depois todas as linhas com dados da pessoa nas tabelas do app e, só no fim,
+ * o login no Supabase Auth. Se qualquer etapa crítica falhar, o login NÃO é
+ * apagado: a pessoa continua conseguindo entrar e tentar de novo, sem deixar
+ * dados inacessíveis para trás. Assinatura mantida ({ error }) para a UI.
+ */
 export const deleteAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: refs } = await supabaseAdmin.from("generated_references").select("path").eq("user_id", userId);
-    if (refs?.length) { const r = await supabaseAdmin.storage.from("user-photos").remove(refs.flatMap(r => r.path ? [r.path] : [])); if (r.error) return { error: "Não foi possível excluir as referências." }; }
-    const { data: photos, error: photoError } = await supabaseAdmin.from("photos").select("path").eq("user_id", userId);
-    if (photoError) return { error: "Não foi possível preparar a exclusão das fotos." };
-    if (photos?.length) { const r = await supabaseAdmin.storage.from("user-photos").remove(photos.map(p => p.path)); if (r.error) return { error: "Não foi possível excluir as fotos. Tente novamente." }; }
-    for (const t of ["generated_references", "image_access_state", "beard_profiles", "photos", "packages", "collections", "feedback", "visual_dna", "dna_versions", "dna_corrections", "preferences", "makeup_profiles", "makeup_signatures", "confidence_kits", "reminders", "journey_reports", "journey_reflections", "journey_steps", "journey_plans", "journey_goals", "tattoo_care_logs", "tattoo_projects", "tattoo_profiles", "visual_profiles", "consents", "audit_events"] as const) {
-      const { error: removeError } = await supabaseAdmin.from(t).delete().eq("user_id", userId);
-      if (removeError) return { error: "Não foi possível concluir a exclusão dos seus dados. Tente novamente." };
+
+    /** Etapas que falharam — qualquer uma delas impede apagar o login. */
+    const falhas: string[] = [];
+    function anotarFalha(etapa: string, erro: unknown) {
+      console.error(`[deleteAccount] falhou: ${etapa}`, erro);
+      falhas.push(etapa);
     }
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    if (error) return { error: error.message };
+
+    const BUCKET_FOTOS = "user-photos";
+    const BUCKET_ESTUDIO = "studio-media";
+    const PAGINA_LISTAGEM = 100;
+    const LOTE_REMOCAO = 100;
+
+    /** Lista (recursivo, paginado) os arquivos de uma pasta do Storage. */
+    async function listarArquivos(bucket: string, pasta: string, profundidade = 0): Promise<string[]> {
+      const arquivos: string[] = [];
+      let offset = 0;
+      for (;;) {
+        const { data, error } = await supabaseAdmin.storage.from(bucket).list(pasta, {
+          limit: PAGINA_LISTAGEM,
+          offset,
+          sortBy: { column: "name", order: "asc" },
+        });
+        if (error) throw error;
+        const itens = data ?? [];
+        for (const item of itens) {
+          const caminho = `${pasta}/${item.name}`;
+          // Pastas vêm sem id/metadata; descemos um nível (com limite de segurança).
+          if (!item.id && profundidade < 4) arquivos.push(...(await listarArquivos(bucket, caminho, profundidade + 1)));
+          else arquivos.push(caminho);
+        }
+        if (itens.length < PAGINA_LISTAGEM) break;
+        offset += PAGINA_LISTAGEM;
+      }
+      return arquivos;
+    }
+
+    async function removerArquivos(bucket: string, caminhos: string[]) {
+      for (let i = 0; i < caminhos.length; i += LOTE_REMOCAO) {
+        const { error } = await supabaseAdmin.storage.from(bucket).remove(caminhos.slice(i, i + LOTE_REMOCAO));
+        if (error) throw error;
+      }
+    }
+
+    /** Extrai o caminho dentro do bucket a partir de uma URL pública/assinada. */
+    function caminhoDoBucket(url: string | null | undefined, bucket: string): string | null {
+      if (!url) return null;
+      const marcador = `/${bucket}/`;
+      const inicio = url.indexOf(marcador);
+      if (inicio < 0) return null;
+      const caminho = (url.slice(inicio + marcador.length).split("?")[0] ?? "").trim();
+      if (!caminho) return null;
+      try { return decodeURIComponent(caminho); } catch { return caminho; }
+    }
+
+    const caminhos = new Map<string, Set<string>>([
+      [BUCKET_FOTOS, new Set<string>()],
+      [BUCKET_ESTUDIO, new Set<string>()],
+    ]);
+    function guardarCaminho(bucket: string, caminho: string | null | undefined) {
+      if (caminho) caminhos.get(bucket)?.add(caminho);
+    }
+
+    // ---- 1) Storage: a pasta da pessoa é sempre {userId}/ ------------------
+    for (const bucket of [BUCKET_FOTOS, BUCKET_ESTUDIO]) {
+      try {
+        for (const arquivo of await listarArquivos(bucket, userId)) guardarCaminho(bucket, arquivo);
+      } catch (e) { anotarFalha(`listar objetos de ${bucket}`, e); }
+    }
+
+    // Caminhos conhecidos no banco (reforço caso algo escape da listagem).
+    const fotos = await supabaseAdmin.from("photos").select("path").eq("user_id", userId);
+    if (fotos.error) anotarFalha("ler caminhos das fotos", fotos.error);
+    else (fotos.data ?? []).forEach((f) => guardarCaminho(BUCKET_FOTOS, f.path));
+
+    const referencias = await supabaseAdmin.from("generated_references").select("path").eq("user_id", userId);
+    if (referencias.error) anotarFalha("ler caminhos das referências", referencias.error);
+    else (referencias.data ?? []).forEach((r) => guardarCaminho(BUCKET_FOTOS, r.path));
+
+    // estetica_registro não tem user_id: o vínculo é a jornada estética.
+    let jornadas: string[] = [];
+    const jornadasEstetica = await supabaseAdmin.from("estetica_jornada").select("id").eq("user_id", userId);
+    if (jornadasEstetica.error) anotarFalha("ler jornadas estéticas", jornadasEstetica.error);
+    else jornadas = (jornadasEstetica.data ?? []).map((j) => j.id);
+    if (jornadas.length) {
+      const registros = await supabaseAdmin.from("estetica_registro").select("foto_path").in("jornada_id", jornadas);
+      if (registros.error) anotarFalha("ler fotos da jornada estética", registros.error);
+      else (registros.data ?? []).forEach((r) => guardarCaminho(BUCKET_FOTOS, r.foto_path));
+    }
+
+    // tattoo_designs pertence ao perfil profissional (também sem user_id).
+    let perfisProfissionais: string[] = [];
+    const profissionais = await supabaseAdmin.from("professionals").select("id").eq("user_id", userId);
+    if (profissionais.error) anotarFalha("ler perfil profissional", profissionais.error);
+    else perfisProfissionais = (profissionais.data ?? []).map((p) => p.id);
+    if (perfisProfissionais.length) {
+      const designs = await supabaseAdmin.from("tattoo_designs").select("imagem_url").in("professional_id", perfisProfissionais);
+      if (designs.error) anotarFalha("ler designs da vitrine", designs.error);
+      else (designs.data ?? []).forEach((d) => guardarCaminho(BUCKET_ESTUDIO, caminhoDoBucket(d.imagem_url, BUCKET_ESTUDIO)));
+    }
+
+    for (const bucket of [BUCKET_FOTOS, BUCKET_ESTUDIO]) {
+      const arquivos = [...(caminhos.get(bucket) ?? [])];
+      if (!arquivos.length) continue;
+      try { await removerArquivos(bucket, arquivos); } catch (e) { anotarFalha(`remover objetos de ${bucket}`, e); }
+    }
+
+    // ---- 2) Filhas sem user_id (apagar antes das tabelas-mãe) -------------
+    if (jornadas.length) {
+      const { error } = await supabaseAdmin.from("estetica_registro").delete().in("jornada_id", jornadas);
+      if (error) anotarFalha("apagar registros da jornada estética", error);
+    }
+    if (perfisProfissionais.length) {
+      const { error } = await supabaseAdmin.from("tattoo_designs").delete().in("professional_id", perfisProfissionais);
+      if (error) anotarFalha("apagar designs da vitrine", error);
+    }
+    const sugestoes = await supabaseAdmin.from("briefing_suggestions").delete().eq("professional_user_id", userId);
+    if (sugestoes.error) anotarFalha("apagar sugestões de IA enviadas", sugestoes.error);
+    if (perfisProfissionais.length) {
+      // Briefings que outras pessoas enviaram para este perfil profissional.
+      const recebidos = await supabaseAdmin.from("briefing_sends").delete().in("professional_id", perfisProfissionais);
+      if (recebidos.error) anotarFalha("apagar briefings recebidos", recebidos.error);
+    }
+
+    // ---- 3) Todas as tabelas com user_id ----------------------------------
+    const tabelas = [
+      "generated_references",
+      "image_access_state",
+      "photos",
+      "collections",
+      "feedback",
+      "visual_dna",
+      "dna_versions",
+      "dna_corrections",
+      "preferences",
+      "makeup_profiles",
+      "makeup_signatures",
+      "confidence_kits",
+      "hair_profiles",
+      "hair_alerts",
+      "style_profiles",
+      "wardrobe_items",
+      "style_analyses",
+      "beard_profiles",
+      "tattoo_care_logs",
+      "tattoo_projects",
+      "tattoo_profiles",
+      "journey_reports",
+      "journey_reflections",
+      "journey_steps",
+      "journey_plans",
+      "journey_goals",
+      "reminders",
+      "audit_events",
+      "feedback_aura",
+      "user_roles",
+      "briefing_sends",
+      "estetica_jornada",
+      "professionals",
+      "packages",
+      "consents",
+      "visual_profiles",
+    ] as const;
+    for (const tabela of tabelas) {
+      const { error } = await supabaseAdmin.from(tabela).delete().eq("user_id", userId);
+      if (error) anotarFalha(`apagar ${tabela}`, error);
+    }
+
+    if (falhas.length) {
+      return { error: "Não foi possível concluir a exclusão de todos os seus dados. Nada do seu login foi apagado; tente novamente." };
+    }
+
+    // ---- 4) Só agora o login, quando todos os dados foram apagados --------
+    // As tabelas do schema `core` que o app usa (ai_runs/uso, entitlements dos
+    // planos, profiles, consents, photos…) têm user_id REFERENCES auth.users
+    // ON DELETE CASCADE, então caem junto com esta exclusão do login.
+    const { error: erroAuth } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (erroAuth) {
+      console.error("[deleteAccount] falha ao apagar login", erroAuth);
+      return { error: "Seus dados foram apagados, mas não conseguimos encerrar seu login agora. Tente novamente em alguns minutos." };
+    }
     return { error: null };
+  });
+
+/**
+ * Tabelas consultadas na exportação da pessoa (LGPD art. 18, portabilidade).
+ * Só texto/JSON — fotos e arquivos do Storage ficam fora (aviso no retorno).
+ */
+const TABELAS_EXPORTACAO = [
+  "consents",
+  "visual_profiles",
+  "visual_dna",
+  "dna_versions",
+  "packages",
+  "collections",
+  "feedback",
+  "reminders",
+  "journey_goals",
+  "journey_plans",
+  "journey_steps",
+  "journey_reflections",
+  "journey_reports",
+  "tattoo_profiles",
+  "tattoo_projects",
+  "tattoo_care_logs",
+  "makeup_profiles",
+  "hair_profiles",
+  "wardrobe_items",
+  "style_analyses",
+  "beard_profiles",
+  "professionals",
+  "briefing_sends",
+] as const;
+
+/** Tabelas com um único registro por pessoa: saem como objeto no JSON. */
+const TABELAS_UM_REGISTRO: ReadonlySet<string> = new Set([
+  "consents",
+  "visual_profiles",
+  "visual_dna",
+  "tattoo_profiles",
+  "makeup_profiles",
+  "hair_profiles",
+  "beard_profiles",
+  "professionals",
+]);
+
+/**
+ * Exporta os dados da pessoa em texto/JSON (sem imagens). Usa o cliente
+ * autenticado (RLS: só as próprias linhas) e falha em PT-BR se algo faltar —
+ * exportação parcial silenciosa seria pior do que pedir para tentar de novo.
+ */
+export const exportarMeusDados = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const dados: Record<string, Json> = {};
+    const falhas: string[] = [];
+
+    for (const tabela of TABELAS_EXPORTACAO) {
+      const { data, error } = await supabase.from(tabela).select("*").eq("user_id", userId);
+      if (error) {
+        console.error(`[exportarMeusDados] falhou: ${tabela}`, error);
+        falhas.push(tabela);
+        continue;
+      }
+      const registros = (data ?? []) as unknown as Json[];
+      dados[tabela] = TABELAS_UM_REGISTRO.has(tabela) ? (registros[0] ?? null) : registros;
+    }
+
+    if (falhas.length) {
+      throw new Error("Não foi possível exportar todos os seus dados agora. Tente novamente em alguns instantes.");
+    }
+
+    return {
+      aviso: "Exportação em texto/JSON. Fotos, imagens geradas e arquivos do Storage não estão incluídos.",
+      exportado_em: new Date().toISOString(),
+      user_id: userId,
+      dados,
+    };
   });
 
 export const adminStats = createServerFn({ method: "POST" })

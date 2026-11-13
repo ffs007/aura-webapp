@@ -1,11 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EstadoErro, EstadoVazio, EsqueletoLista } from "@/components/estados";
+import { CARTAO, CARTAO_COMPACTO, META, TITULO_ITEM, TITULO_SECAO } from "@/lib/design";
 import { DNA_FIELDS, fmtDateTime, logEvent, type DnaSummary } from "@/lib/aura";
 
 export const Route = createFileRoute("/_authenticated/dna/versoes")({
@@ -25,16 +27,31 @@ function Versions() {
 
   async function restore(summary: unknown) {
     const { error } = await supabase.from("visual_dna").upsert({ user_id: user.id, summary: summary as never, updated_at: new Date().toISOString() });
-    if (error) { toast.error("Não foi possível restaurar."); return; }
+    if (error) { toast.error("Não foi possível restaurar esta versão. Tente de novo."); return; }
     await supabase.from("dna_versions").insert({ user_id: user.id, summary: summary as never, source: "restore" });
     await logEvent("version_created", { source: "restore" });
     toast.success("Versão restaurada");
     qc.invalidateQueries();
   }
 
-  if (q.isLoading) return <Skeleton className="h-64 rounded-2xl" />;
+  if (q.isLoading) return <EsqueletoLista itens={4} colunas={1} altura="h-20" />;
+  if (q.error) return (
+    <EstadoErro
+      titulo="Não foi possível carregar suas versões."
+      onTentarNovamente={() => void q.refetch()}
+      recarregando={q.isFetching}
+    />
+  );
   const list = q.data ?? [];
-  if (!list.length) return <p className="text-muted-foreground">Nenhuma versão ainda. Gere seu DNA Visual no Resumo.</p>;
+  if (!list.length) return (
+    <EstadoVazio
+      compacto
+      icone={<History />}
+      titulo="Nenhuma versão ainda"
+      descricao="Gere seu DNA Visual no Resumo para começar o histórico."
+      acoes={<Button asChild size="sm" variant="outline"><Link to="/dna">Abrir o Resumo</Link></Button>}
+    />
+  );
   const cmp = list.filter((v) => sel.includes(v.id));
 
   return (
@@ -44,10 +61,10 @@ function Versions() {
         {list.map((v) => {
           const s = v.summary as unknown as DnaSummary;
           return (
-            <li key={v.id} className="rounded-2xl border bg-card p-4">
+            <li key={v.id} className={CARTAO_COMPACTO}>
               <div className="flex flex-wrap items-center gap-3">
                 <Checkbox checked={sel.includes(v.id)} onCheckedChange={() => setSel(sel.includes(v.id) ? sel.filter((x) => x !== v.id) : [...sel.slice(-1), v.id])} />
-                <div className="flex-1"><div className="font-medium">{s?.headline ?? "Versão"}</div><div className="text-xs text-muted-foreground">{fmtDateTime(v.created_at)} · {SOURCE[v.source] ?? v.source}</div></div>
+                <div className="flex-1"><div className={TITULO_ITEM}>{s?.headline ?? "Versão"}</div><div className={META}>{fmtDateTime(v.created_at)} · {SOURCE[v.source] ?? v.source}</div></div>
                 <Button size="sm" variant="ghost" onClick={() => setOpen(open === v.id ? null : v.id)}>{open === v.id ? "Fechar" : "Ver"}</Button>
                 <Button size="sm" variant="outline" onClick={() => restore(v.summary)}>Restaurar</Button>
               </div>
@@ -61,8 +78,8 @@ function Versions() {
         })}
       </ul>
       {cmp.length === 2 && (
-        <div className="rounded-2xl border bg-card p-5">
-          <h2 className="text-3xl">Comparação</h2>
+        <div className={CARTAO}>
+          <h2 className={TITULO_SECAO}>Comparação</h2>
           <table className="mt-3 w-full text-sm">
             <thead><tr className="text-left text-muted-foreground"><th className="py-1 pr-4">Campo</th>{cmp.map((v) => <th key={v.id} className="py-1 pr-4">{fmtDateTime(v.created_at)}</th>)}</tr></thead>
             <tbody>

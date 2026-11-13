@@ -38,3 +38,7 @@ dist-ssr
 
 # estado de scanner de sessão
 .mimosa/
+
+# artefatos locais do verificador de lançamento (podem conter id de conta descartável)
+scripts/.verificacao-conta.json
+scripts/resultado*.json

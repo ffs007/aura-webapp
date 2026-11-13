@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EsqueletoDetalhe, EstadoVazio } from "@/components/estados";
+import { CARTAO, TITULO_ITEM, TITULO_SECAO } from "@/lib/design";
 import { downloadText, LEVEL_LABEL, logEvent } from "@/lib/aura";
 import { manualMarkdown } from "@/lib/manual";
 import { DISCLAIMER, type Kit, type MakeupLook, type Signature } from "@/lib/makeup";
@@ -24,7 +26,7 @@ function Manual() {
       return { sig: (sig?.summary ?? null) as Signature | null, kits: (kits ?? []).map((k) => k.content as unknown as Kit), looks: (looks ?? []).map((l) => ({ content: l.content as unknown as MakeupLook, note: l.note })) };
     },
   });
-  if (q.isLoading) return <Skeleton className="h-96 rounded-2xl" />;
+  if (q.isLoading) return <EsqueletoDetalhe />;
   const d = q.data!;
   const empty = !d.sig && !d.kits.length && !d.looks.length;
 
@@ -35,13 +37,20 @@ function Manual() {
         <Button variant="outline" disabled={empty} onClick={() => { logEvent("manual_exported", { format: "print" }); window.print(); }}>Imprimir / salvar PDF</Button>
         <span className="self-center text-xs text-muted-foreground">Google Docs: ainda não conectado.</span>
       </div>
-      {empty ? <p className="text-muted-foreground">Gere uma assinatura, crie kits ou salve looks para montar seu manual.</p> : (
-        <article className="space-y-8 rounded-2xl border bg-card p-8">
-          <header><h2 className="text-4xl">Meu manual de maquiagem</h2><p className="text-xs italic text-muted-foreground">{DISCLAIMER}</p></header>
-          {d.sig && <section><h3 className="text-3xl">{d.sig.name}</h3><p>{d.sig.essence}</p><ol className="mt-2 list-decimal pl-5 text-sm">{d.sig.signature_steps.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
-          {d.kits.length > 0 && <section><h3 className="text-3xl">Kits de confiança</h3>{d.kits.map((k, i) => <div key={i} className="mt-3"><strong>{k.name}</strong> — {k.items.map((x) => x.item).join(", ")} ({k.total_brl})</div>)}</section>}
-          {d.looks.length > 0 && <section><h3 className="text-3xl">Looks salvos</h3>{d.looks.map((l, i) => (
-            <div key={i} className="mt-4 break-inside-avoid"><h4 className="font-display text-2xl">{l.content.title}</h4><p className="text-sm text-muted-foreground">{l.content.invitation}</p>
+      {empty ? (
+        <EstadoVazio
+          compacto
+          icone={<BookOpen className="size-6" />}
+          titulo="Seu manual ainda está vazio"
+          descricao="Gere uma assinatura, crie kits ou salve looks para montar seu manual."
+        />
+      ) : (
+        <article className={CARTAO}>
+          <header><h2 className={TITULO_SECAO}>Meu manual de maquiagem</h2><p className="text-xs italic text-muted-foreground">{DISCLAIMER}</p></header>
+          {d.sig && <section><h3 className={TITULO_SECAO}>{d.sig.name}</h3><p>{d.sig.essence}</p><ol className="mt-2 list-decimal pl-5 text-sm">{d.sig.signature_steps.map((x, i) => <li key={i}>{x}</li>)}</ol></section>}
+          {d.kits.length > 0 && <section><h3 className={TITULO_SECAO}>Kits de confiança</h3>{d.kits.map((k, i) => <div key={i} className="mt-3"><strong>{k.name}</strong> — {k.items.map((x) => x.item).join(", ")} ({k.total_brl})</div>)}</section>}
+          {d.looks.length > 0 && <section><h3 className={TITULO_SECAO}>Looks salvos</h3>{d.looks.map((l, i) => (
+            <div key={i} className="mt-4 break-inside-avoid"><h4 className={`font-display ${TITULO_ITEM}`}>{l.content.title}</h4><p className="text-sm text-muted-foreground">{l.content.invitation}</p>
               {l.content.variations.map((v) => <div key={v.level} className="mt-2 text-sm"><span className="text-accent">{LEVEL_LABEL[v.level]}:</span> {v.steps.join(" → ")}</div>)}</div>
           ))}</section>}
         </article>

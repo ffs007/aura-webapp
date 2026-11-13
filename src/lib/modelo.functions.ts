@@ -2,6 +2,8 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { getRequest } from '@tanstack/react-start/server';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
+import { mensagemDeImagemAmigavel } from './erros-imagem';
+import { AVISO_URL_INVALIDA, urlDoCofreValida } from './seguranca-imagem';
 
 /**
  * Meu Modelo (modelo pessoal canônico: rosto + corpo) — consentimento PRÓPRIO
@@ -26,16 +28,19 @@ export const modeloConsent = createServerFn({ method: 'POST' })
   });
 
 const PROMPTS: Record<'rosto' | 'corpo', string> = {
-  rosto: 'Edit this exact photo into a neutral canonical studio portrait of the SAME person: front-facing headshot, relaxed neutral expression, even soft studio lighting, plain light gray background, shoulders up, no makeup changes, no jewelry. PRESERVE the exact face, identity, skin tone, hairline and features. No text, no watermark.',
-  corpo: 'Edit this exact photo into a neutral canonical full-body studio image of the SAME person: standing straight, front-facing, arms relaxed at sides, plain light gray background, simple fitted light-gray top and bottoms, even soft lighting. PRESERVE the exact face, identity, body proportions and skin tone. No text, no watermark.',
+  rosto: 'Edit this exact photo into a neutral canonical studio portrait of the same person: front-facing headshot, relaxed neutral expression, even soft studio lighting, plain light gray background, shoulders up, no makeup changes, no jewelry. Preserve exactly the face, identity, skin tone, hairline and features. No text, no watermark.',
+  corpo: 'Edit this exact photo into a neutral canonical full-body studio image of the same person: standing straight, front-facing, arms relaxed at sides, plain light gray background, simple fitted light-gray top and bottoms, even soft lighting. Preserve exactly the face, identity, body proportions and skin tone. No text, no watermark.',
 };
 
 export const gerarModelo = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .validator((d) => z.object({ seedUrl: z.string().url(), tipo: z.enum(['rosto', 'corpo']) }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context: { supabase, userId } }) => {
     const token = getRequest()?.headers?.get('authorization');
     if (!token?.startsWith('Bearer ')) return { ok: false as const, image_url: null, error: 'Entre na sua conta.' };
+    if (!urlDoCofreValida(data.seedUrl, userId)) return { ok: false as const, image_url: null, error: AVISO_URL_INVALIDA };
+    const { data: consent } = await supabase.from('consents').select('photo_processing,image_generation').eq('user_id', userId).maybeSingle();
+    if (!consent?.photo_processing || !consent.image_generation) return { ok: false as const, image_url: null, error: 'Ative as permissões de fotos e de imagens geradas por IA em Configurações.' };
     try {
       const res = await fetch(GATEWAY_URL, {
         method: 'POST',
@@ -44,8 +49,8 @@ export const gerarModelo = createServerFn({ method: 'POST' })
       });
       const body = (await res.json().catch(() => ({}))) as { image_url?: string; error?: string };
       if (!res.ok || !body.image_url) {
-        const msg = body.error ?? 'Não foi possível gerar o modelo agora.';
-        return { ok: false as const, image_url: null, error: /gratuitas|PAYWALL/i.test(msg) ? 'Você já usou sua geração grátis do modelo. O Aura Pass libera mais.' : msg };
+        const msg = body.error ?? '';
+        return { ok: false as const, image_url: null, error: /gratuitas|PAYWALL/i.test(msg) ? 'Você já usou sua geração grátis do modelo. O Aura Pass libera mais.' : mensagemDeImagemAmigavel(msg) };
       }
       return { ok: true as const, image_url: body.image_url, error: null };
     } catch {

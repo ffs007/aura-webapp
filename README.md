@@ -27,3 +27,13 @@ npm run dev
 - TypeScript
 - React
 - Tailwind CSS
+
+## Verificar bloqueios de lançamento
+
+Depois de configurar as chaves (veja [`.env.example`](.env.example)):
+
+```sh
+npm run verificar:lancamento
+```
+
+O script checa variáveis, service role, buckets, SMTP, Edge Functions de pagamento/IA, headers e dados de teste, e termina com exit code 1 se houver bloqueio. Passo a passo, incluindo o teste de exclusão de conta em conta descartável, em [COMO-VERIFICAR-BLOQUEIOS.md](COMO-VERIFICAR-BLOQUEIOS.md). O panorama completo está em [RELATORIO-LANCAMENTO-AURA-ID.md](RELATORIO-LANCAMENTO-AURA-ID.md).

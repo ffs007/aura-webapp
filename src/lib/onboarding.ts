@@ -70,7 +70,7 @@ export const STEPS: OStep[] = [
     { key: "makeup_preference", label: "Maquiagem nas combinações", hint: "Só incluiremos se você quiser.", type: "cards", options: [{ value: "yes", label: "Quero incluir" }, { value: "no", label: "Não quero" }], suggested: "no" },
     { key: "beard_preference", label: "Barba nas combinações", hint: "Sem barba também é uma escolha válida.", type: "cards", options: [{ value: "yes", label: "Tenho / quero explorar" }, { value: "no", label: "Sem barba" }], suggested: "" },
     t("accessory_preferences", "Acessórios que você usa", "Inclua também o que não quer receber.", "relógio e óculos; não uso bolsa"),
-    a("goals", "Objetivos de imagem", "Uma ou duas frases bastam.", "me sentir segura(o) no trabalho com pouco esforço", "Me sentir bem e à vontade no dia a dia"),
+    a("goals", "Objetivos de imagem", "Uma ou duas frases bastam.", "me sentir à vontade no trabalho com pouco esforço", "Me sentir bem e à vontade no dia a dia"),
     { ...a("social_goals", "E na vida social?", "Opcional: pode ser diferente do trabalho.", "mais leveza nos fins de semana"), optional: true },
   ] },
   { id: "body", quick: true, title: "Seu corpo, do seu jeito", tip: "Nenhum formato é melhor que outro — isso só ajuda a sugerir caimentos.", fields: [
@@ -100,7 +100,7 @@ export const STEPS: OStep[] = [
   { id: "limits", quick: true, title: "Limites práticos", tip: "Sem certo ou errado: é para respeitar seu ritmo.", fields: [
     t("budget", "Orçamento", "Uma faixa aproximada.", "R$ 300/mês", "modesto"),
     { key: "maintenance", label: "Tolerância à manutenção", hint: "Quanto tempo topa investir.", type: "slider", suggested: 3, min: "Mínima", max: "Gosto de investir tempo" },
-    { key: "comfort", label: "Conforto com mudanças", hint: "Passos pequenos ou algo grande.", type: "slider", suggested: 3, min: "Passos pequenos", max: "Pronta(o) para algo grande" },
+    { key: "comfort", label: "Conforto com mudanças", hint: "Passos pequenos ou algo grande.", type: "slider", suggested: 3, min: "Passos pequenos", max: "Topo algo grande" },
   ] },
   { id: "taste", quick: false, title: "O que você ama e o que não quer", tip: "Referências livres: cores, épocas, pessoas.", fields: [
     a("preferred", "Estilos, cores e referências de que gosta", "Palavras soltas valem.", "tons terrosos, anos 70, linho"),
@@ -118,11 +118,27 @@ export const allFields = () => STEPS.flatMap((s) => s.fields);
 export const fieldByKey = (k: string) => allFields().find((f) => f.key === k);
 export const isEmpty = (v: unknown) => v === undefined || v === null || v === "";
 
+/**
+ * Campos condicionais só aparecem quando a apresentação escolhida faz sentido.
+ * Sem apresentação definida, os dois reaparecem.
+ */
+export function isFieldVisible(key: string, presentation: unknown): boolean {
+  if (key === "beard_preference") return presentation !== "feminine";
+  if (key === "makeup_preference") return presentation !== "masculine";
+  return true;
+}
+
+/** Campos do passo que fazem sentido para as respostas atuais. */
+export function visibleFields(step: OStep, data: Data): OField[] {
+  return step.fields.filter((f) => isFieldVisible(f.key, data["presentation"]));
+}
+
 /** Campos obrigatórios sem valor nas etapas visíveis viram pendências. */
 export function computePending(data: Data, mode: Mode): string[] {
   const skipped = new Set(data._pending ?? []);
   const out: string[] = [];
   for (const s of stepsFor(mode)) for (const f of s.fields) {
+    if (!isFieldVisible(f.key, data["presentation"])) continue;
     if (f.optional) continue;
     if (isEmpty(data[f.key]) || skipped.has(f.key)) out.push(f.key);
   }

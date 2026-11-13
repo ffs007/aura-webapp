@@ -1,5 +1,6 @@
 import { createParser } from "eventsource-parser";
 import { flushSync } from "react-dom";
+import { mensagemDeImagemAmigavel } from "@/lib/erros-imagem";
 
 type ImagePayload = { type?: string; b64_json?: string; url?: string; error?: { message?: string } };
 
@@ -31,7 +32,7 @@ export async function streamImage(
   };
   const res = await send(true);
   if (!res.ok || !res.body) {
-    throw new Error(await res.text().catch(() => "Não foi possível gerar a imagem."));
+    throw new Error(mensagemDeImagemAmigavel(await res.text().catch(() => "")));
   }
 
   let sawCompleted = false;
@@ -87,11 +88,11 @@ export async function streamImage(
     await reader.cancel().catch(() => {});
   }
   signal?.throwIfAborted();
-  if (streamError) throw new Error(streamError);
+  if (streamError) throw new Error(mensagemDeImagemAmigavel(streamError));
   if (!sawAnyEvent) {
     const replay = await send(false);
     if (!replay.ok) {
-      throw new Error(await replay.text().catch(() => "Não foi possível gerar a imagem."));
+      throw new Error(mensagemDeImagemAmigavel(await replay.text().catch(() => "")));
     }
     const json = (await replay.json()) as { data?: { b64_json?: string }[] };
     const b64 = json.data?.[0]?.b64_json;
