@@ -1,30 +1,30 @@
 # Publicar `auraid.app.br` (Vercel + Cloudflare + Supabase)
 
-**Estado em 13/11/2026:** o app responde em `https://aura-webapp-dusky.vercel.app` (Vercel, código de `main`) e o domínio **está registrado**, mas `auraid.app.br` e `www` **não têm registro A/CNAME** — ou seja, o domínio ainda não aponta para o app.
+**Estado em 13/11/2026:** o domínio **já está no ar** (Cloudflare proxied → Vercel). Hoje `https://www.auraid.app.br` responde 200 e o apex `https://auraid.app.br` faz **308 para o www**. A recomendação é inverter: apex como principal e `www` redirecionando para ele (o código publica `canonical`/`og:url` no apex).
 
-> ⚠️ O Stripe está em **modo LIVE** e o checkout já usa `https://auraid.app.br` como retorno. Vender antes de concluir este guia faz o cliente pagar e cair em página inexistente.
+> ⚠️ O Stripe está em **modo LIVE** e o checkout já usa `https://auraid.app.br` como retorno. Confirme que a configuração de domínio está concluída antes de divulgar o link de venda.
 
-## 1. Adicionar o domínio na Vercel
+## 1. Ajustar o domínio principal na Vercel
 
 1. Vercel → projeto do Aura ID → **Settings → Domains**.
-2. Adicionar `auraid.app.br` (apex) e `www.auraid.app.br`.
-3. A Vercel mostra os registros esperados. Use **exatamente** os valores que ela exibir:
-   - apex: registro **A** → `76.76.21.21` (projetos novos podem mostrar `216.198.79.1`; vale o que o painel mostrar);
-   - `www`: registro **CNAME** → `cname.vercel-dns.com`.
-4. Escolha `auraid.app.br` como domínio principal e deixe `www` redirecionando para o apex (a Vercel faz o 301 automaticamente).
+2. Em `auraid.app.br`, use **Set as Primary Domain** (ou "Redirect to" invertido): apex serve o site, `www` faz 301 para o apex.
+3. Se preferir manter `www` como principal, defina `VITE_APP_URL=https://www.auraid.app.br` no ambiente de produção da Vercel para o `canonical` acompanhar — mas o padrão do projeto é o apex.
 
-## 2. Criar os registros no Cloudflare
+Referência de registros (Cloudflare, zona `auraid.app.br`):
 
-O domínio usa os nameservers da Cloudflare (`ashton.ns.cloudflare.com`, `hope.ns.cloudflare.com`).
+| Tipo | Nome | Conteúdo | Proxy |
+| --- | --- | --- | --- |
+| A | `@` | IP mostrado pela Vercel (ex.: `76.76.21.21`) | Proxied (funciona hoje) ou DNS only |
+| CNAME | `www` | `cname.vercel-dns.com` | idem |
+
+## 2. Registros no Cloudflare (já criados; confira se for recriar)
+
+O domínio usa os nameservers da Cloudflare (`ashton.ns.cloudflare.com`, `hope.ns.cloudflare.com`). Hoje o apex e o `www` resolvem para IPs da Cloudflare (proxy laranja) e chegam à Vercel.
 
 1. Cloudflare → zona `auraid.app.br` → **DNS → Records**.
-2. Criar:
-   - **A** · nome `@` · IPv4 indicado pela Vercel · **Proxy status: DNS only (nuvem cinza)**;
-   - **CNAME** · nome `www` · destino `cname.vercel-dns.com` · **Proxy: DNS only**.
-3. Não remova os registros de e-mail (MX/SPF/DKIM) se já existirem.
-4. Confira em segundos: `Resolve-DnsName auraid.app.br` deve devolver o IP da Vercel.
-
-> Por que "DNS only": a Vercel precisa terminar o TLS para emitir o certificado do domínio. Com o proxy laranja ligado, o certificado pode falhar ou gerar loop de redirecionamento. Se quiser usar o proxy da Cloudflare depois, configure SSL/TLS **Full (strict)**.
+2. Se precisar recriar: **A** `@` com o IPv4 indicado pela Vercel e **CNAME** `www` → `cname.vercel-dns.com`.
+3. Proxy pode ficar ligado (funciona) — se aparecer erro de certificado/loop, troque para **DNS only (nuvem cinza)** e deixe a Vercel emitir o TLS.
+4. Não remova registros de e-mail (MX/SPF/DKIM).
 
 ## 3. Confirmar na Vercel
 
