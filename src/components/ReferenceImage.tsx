@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { prepareReference, finishReference, interpretLookRequest, verifyReference, guiaPosGeracao } from "@/lib/references.functions";
 import { interpretTattooRequest } from "@/lib/tattoo.functions";
 import { resumoDoPedido, type TattooBrief } from "@/lib/tattoo-brief";
+import { imagemVazia } from "@/lib/imagem-vazia";
 import { QuotaChip } from "@/components/QuotaChip";
 import { EnviarBriefing } from "@/components/EnviarBriefing";
 import { Aviso, CarregandoInline, EstadoErro } from "@/components/estados";
@@ -203,6 +204,9 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
       if (!completed) throw new Error("A IA não devolveu uma imagem final.");
       const path = `${auth.session.user.id}/reference-${id}.png`;
       const blob = await (await fetch(completed)).blob();
+      // O provedor responde 200 com um quadro preto quando filtra o prompt:
+      // conferir antes de salvar evita guardar "imagem" vazia na conta da usuária.
+      if (await imagemVazia(blob)) throw new Error("A IA devolveu uma imagem vazia (quadro preto) e nada foi salvo. Tente gerar de novo — desta vez o pedido vai sem o prompt genérico.");
       const upload = await supabase.storage.from("user-photos").upload(path, blob, { contentType: "image/png" }); if (upload.error) throw upload.error;
       await finish({ data: { id, path } });
       if (q.data?.id) await remove();

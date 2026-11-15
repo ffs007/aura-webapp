@@ -6,6 +6,7 @@ import { visionCheck, callJson } from "./ai.server";
 import { compileTattooPrompt, tattooBriefSchema } from "./tattoo-brief";
 import { AVISO_URL_INVALIDA, urlDoCofreValida } from "./seguranca-imagem";
 import { registrarBriefIncompleto } from "./diagnostico-ia";
+import { cenaEmProsa } from "./cena-prompt";
 
 /** Brief estruturado para looks (roupas/maquiagem/cabelo) — padrão do tattoo-brief (feedback 27/10). */
 import { lookBriefSchema, lookSchemaJson, normalizarLookBrief, briefDeReserva, type LookBrief, type LookKind } from "./look-brief";
@@ -110,8 +111,12 @@ export const prepareReference = createServerFn({ method: "POST" }).middleware([r
       const v = options?.find(x => x["level"] === data.slot);
       if (!v) throw new Error("Alternativa não encontrada.");
       const keys = pack.kind === "tattoo_plan" ? ["description", "style"] : pack.kind === "hair_plan" ? ["cut", "color", "visual_message"] : pack.kind === "outfit" ? ["summary", "pieces"] : pack.kind === "makeup_look" ? ["summary", "products", "steps"] : ["summary", "clothing", "makeup", "hair", "beard", "accessories"];
-      scene = JSON.stringify(Object.fromEntries(keys.filter(k => v[k] !== undefined).map(k => [k, v[k]])));
-      if (pack.kind === "outfit") scene += JSON.stringify({ shoes: c["shoes"], colors: c["colors"], accessories: c["accessories"] });
+      // Prosa, nunca JSON: com a cena em JSON o provedor devolvia imagem preta.
+      scene = cenaEmProsa(Object.fromEntries(keys.filter(k => v[k] !== undefined).map(k => [k, v[k]])));
+      if (pack.kind === "outfit") {
+        const extras = cenaEmProsa({ shoes: c["shoes"], colors: c["colors"], accessories: c["accessories"] });
+        if (extras) scene = scene ? `${scene}; ${extras}` : extras;
+      }
       if (["hair_plan", "makeup_look", "beard_plan"].includes(pack.kind)) framing = "Fotografia editorial realista de rosto e ombros de pessoa adulta fictícia";
       if (pack.kind === "tattoo_plan") { isolatedConcept = true; framing = "Ilustração do conceito isolado em papel branco, sem pessoa, sem corpo, sem aplicação sobre pele"; }
     } else if (data.slot !== "avatar") throw new Error("Referência inválida.");
