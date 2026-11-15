@@ -13,6 +13,8 @@ import { z } from "zod";
  */
 export const lookBriefSchema = z.object({
   kind: z.enum(["outfit", "makeup_look", "hair_plan"]),
+  /** Objetivo visual em uma frase — é o que o modelo de imagem deve perseguir. */
+  resumo: z.string().max(400).default(""),
   atributos: z
     .array(z.object({ rotulo: z.string().min(1).max(80), valor: z.string().min(1).max(600) }))
     .max(40),
@@ -26,9 +28,10 @@ export type LookKind = LookBrief["kind"];
 export const lookSchemaJson = {
   type: "object",
   additionalProperties: false,
-  required: ["kind", "atributos", "ajuste_usuario", "duvidas"],
+  required: ["kind", "resumo", "atributos", "ajuste_usuario", "duvidas"],
   properties: {
     kind: { type: "string", enum: ["outfit", "makeup_look", "hair_plan"] },
+    resumo: { type: "string" },
     atributos: {
       type: "array",
       maxItems: 12,
@@ -87,8 +90,9 @@ export function normalizarLookBrief(bruto: unknown, kind: LookKind): LookBrief |
   }
   const duvidas = listaDeTexto(d["duvidas"], 200, 3);
   const ajuste = texto(d["ajuste_usuario"] ?? d["ajuste"], 600);
+  const resumo = texto(d["resumo"] ?? d["summary"] ?? d["objetivo"], 400);
   if (!atributos.length) return null;
-  return { kind, atributos, ajuste_usuario: ajuste, duvidas };
+  return { kind, resumo, atributos, ajuste_usuario: ajuste, duvidas };
 }
 
 /**
@@ -113,5 +117,64 @@ export function briefDeReserva(opcao: Record<string, unknown>, kind: LookKind): 
   empurrar("execucao", lista(opcao["steps"], 200));
   empurrar("acessorios", lista(opcao["accessories"], 80).slice(0, 600));
   if (!atributos.length) return null;
-  return { kind, atributos: atributos.slice(0, 12), ajuste_usuario: "", duvidas: [] };
+  return {
+    kind,
+    resumo: texto(opcao["summary"] ?? opcao["description"] ?? opcao["title"], 400),
+    atributos: atributos.slice(0, 12),
+    ajuste_usuario: "",
+    duvidas: [],
+  };
+}
+
+/**
+ * Prompt do look para o modelo de imagem.
+ *
+ * `ancorada` (15/11/2026): quando existe foto-base (Meu Modelo ou foto enviada),
+ * a geração é uma EDIÇÃO dessa foto. Antes o prompt era de "geração" (fotografia
+ * de pessoa fictícia) mesmo com base anexada, e o provedor devolvia praticamente
+ * a mesma foto — medido: três gerações diferentes com diferença de ~3% entre si e
+ * ~8% do modelo, sem a maquiagem aplicada. Com o prompt de edição + objetivo
+ * visual, a mudança aparece na imagem.
+ */
+const FRAMINGS: Record<string, string> = {
+  outfit: "Fotografia editorial realista de corpo inteiro de pessoa adulta fictícia.",
+  makeup_look: "Fotografia editorial realista de rosto e ombros de pessoa adulta fictícia, textura de pele natural visível.",
+  hair_plan: "Fotografia editorial realista de rosto e ombros de pessoa adulta fictícia, cabelo como elemento principal.",
+};
+const FRAMING_OUTFIT = FRAMINGS["outfit"];
+
+/** Ação de edição conforme o tipo de look (o modelo precisa saber O QUE trocar). */
+function acaoDaEdicao(kind: LookKind): string {
+  if (kind === "outfit") return "Vista a pessoa exatamente com as peças descritas, substituindo a roupa atual.";
+  if (kind === "hair_plan") return "Mude o cabelo exatamente para o corte, a cor e a textura descritos.";
+  return "Aplique exatamente a maquiagem descrita, com resultado visível na pele, nos olhos e nos lábios.";
+}
+
+export function compileLookPrompt(
+  b: LookBrief,
+  extras?: { atributosPessoa?: string; apresentacao?: string; ancorada?: boolean },
+): string {
+  const specs = b.atributos.map((a) => `${a.rotulo}: ${a.valor}`).join("; ");
+  const ajuste = b.ajuste_usuario ? ` Ajuste obrigatório do usuário: ${b.ajuste_usuario}.` : "";
+  const objetivo = b.resumo ? ` Objetivo visual do pedido: ${b.resumo}.` : "";
+
+  if (extras?.ancorada) {
+    return (
+      `Edite a fotografia real enviada como referência — é a própria pessoa, não uma pessoa fictícia: ` +
+      `preserve o rosto, a identidade, o tom e a textura da pele, a pose, o enquadramento, a luz e o fundo. ` +
+      `${acaoDaEdicao(b.kind)}${objetivo} ` +
+      `Mudanças que precisam aparecer de forma claramente visível na imagem final: ${specs}.${ajuste} ` +
+      `O resultado tem de ser a MESMA pessoa com o visual pedido e visivelmente diferente da foto original — ` +
+      `não devolva a foto original sem as mudanças. ` +
+      `Não alterar corpo, idade, traços ou cenário; sem texto, logotipos, marcas d'água ou sobreposição plástica. ` +
+      `Referência visual de conceito, não prova virtual.`
+    );
+  }
+
+  const variar = b.kind === "outfit"
+    ? "Variar tecido, caimento, dobras e proporção conforme citado — nunca um manequim de catálogo padronizado."
+    : "Respeitar idade aparente, tom de pele e textura citados; nunca um rosto único de catálogo.";
+  const pessoa = extras?.atributosPessoa ? ` Características reais da pessoa (não inferir outras): ${extras.atributosPessoa}.` : "";
+  const apresentacao = extras?.apresentacao ? ` Apresentação informada: ${extras.apresentacao}.` : "";
+  return `${FRAMINGS[b.kind] ?? FRAMING_OUTFIT}${objetivo} Especificações obrigatórias do pedido (restrições, não sugestões): ${specs}.${ajuste}${pessoa}${apresentacao} ${variar} Luz suave, fundo neutro coerente com o contexto citado. Regras: não ignorar cor, material ou posição pedidos; não padronizar biótipo, idade ou tom; sem texto, logotipos ou marcas; sem sobreposição plástica de adesivo; sem membros ou dedos extras. Referência visual, não prova virtual. Não retratar pessoas reais.`;
 }

@@ -21,7 +21,7 @@ import { AVISO_SEM_BASE, escolherBaseTatuagem } from "@/lib/base-tatuagem";
 import { buscarPecas, provarPeca, type PecaCasada } from "@/lib/catalogo.functions";
 import { streamImage } from "@/lib/stream-image";
 
-type LookBrief = { kind: string; atributos: { rotulo: string; valor: string }[]; ajuste_usuario: string; duvidas: string[] };
+type LookBrief = { kind: string; resumo?: string; atributos: { rotulo: string; valor: string }[]; ajuste_usuario: string; duvidas: string[] };
 
 export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, look = false }: { packageId?: string; slot?: string; tattoo?: boolean; look?: boolean }) {
   const prepare = useServerFn(prepareReference), finish = useServerFn(finishReference), interpret = useServerFn(interpretTattooRequest), interpretLook = useServerFn(interpretLookRequest), guia = useServerFn(guiaPosGeracao), pecasFn = useServerFn(buscarPecas), provarFn = useServerFn(provarPeca), qc = useQueryClient();
@@ -198,6 +198,9 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
         const arquivo = /makeup|hair|barba/.test(pacoteKind.current) ? "modelo-rosto.png" : "modelo-corpo.png";
         refs = await assinarBase([`${auth.session.user.id}/${arquivo}`]);
       }
+      // Qualquer base real (modelo ou foto do local) exige prompt de EDIÇÃO:
+      // sem isso o provedor devolvia praticamente a mesma foto, sem o look pedido.
+      if (refs.length) ancorada = true;
       const r = await prepare({ data: { packageId, slot, agree, ...(briefConfirmado ? { brief: briefConfirmado } : {}), ...(correcao?.length ? { correcao } : {}), ...(ancorada ? { ancorada: true } : {}) } }); id = r.id;
       let completed: string | undefined;
       await streamImage("/api/reference-image", { id, ...(taskId ? { task_id: taskId } : {}), ...(refs.length ? { input_refs: refs } : {}) }, (url, done) => { setPreview(url); setFinal(done); if (done) completed = url; }, controller.signal, { Authorization: `Bearer ${auth.session.access_token}` });
@@ -285,6 +288,7 @@ export function ReferenceImage({ packageId, slot = "avatar", tattoo = false, loo
     </div>}
     {lookBrief && !busy && <div className={CARTAO_DESTAQUE} role="region" aria-label="Confirmação do pedido entendido">
       <p className="text-sm font-medium">Entendi assim — confirme antes de gerar</p>
+      {lookBrief.resumo && <p className="mt-1 text-xs text-muted-foreground">{lookBrief.resumo}</p>}
       <dl className="mt-3 space-y-1.5 text-xs">{lookBrief.atributos.map(a => <div key={a.rotulo} className="flex gap-2"><dt className="w-32 shrink-0 text-muted-foreground">{a.rotulo}</dt><dd className="font-medium">{a.valor}</dd></div>)}</dl>
       <label className="mt-3 block text-xs">Ajuste obrigatório (opcional)<Input className="mt-1 h-8" placeholder="ex.: tecido leve, tom terroso" value={lookBrief.ajuste_usuario} onChange={e => setLookBrief({ ...lookBrief, ajuste_usuario: e.target.value })} /></label>
       {lookBrief.duvidas.length > 0 && <ul className="mt-3 space-y-1 text-xs text-muted-foreground">{lookBrief.duvidas.map(d => <li key={d}>Pendência: {d}</li>)}</ul>}
