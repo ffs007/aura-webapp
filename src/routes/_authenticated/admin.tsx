@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CabecalhoPagina, CarregandoInline, CarregandoPagina, Cartao, EstadoErro, EstadoVazio, Aviso } from "@/components/estados";
 import { TITULO_SECAO } from "@/lib/design";
 import { adminStats } from "@/lib/aura.functions";
-import { funilInstrumentacao, errosInstrumentacao, type FunilResposta, type ErrosResposta } from "@/lib/instrumentacao.functions";
+import { funilInstrumentacao, errosInstrumentacao, custosInstrumentacao, type FunilResposta, type ErrosResposta, type CustosResposta } from "@/lib/instrumentacao.functions";
 import { fmtDateTime } from "@/lib/aura";
 import { CatalogManager } from "@/components/CatalogManager";
 import { ParceirosManager } from "@/components/ParceirosManager";
@@ -33,10 +33,12 @@ function Admin() {
   const stats = useServerFn(adminStats);
   const funil = useServerFn(funilInstrumentacao);
   const erros = useServerFn(errosInstrumentacao);
+  const custos = useServerFn(custosInstrumentacao);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin"], queryFn: () => stats() });
   const fq = useQuery({ queryKey: ["admin-funil"], queryFn: () => funil(), enabled: q.data?.allowed === true, retry: false, staleTime: 60_000 });
   const eq = useQuery({ queryKey: ["admin-erros"], queryFn: () => erros(), enabled: q.data?.allowed === true, retry: false, staleTime: 60_000 });
+  const cq = useQuery({ queryKey: ["admin-custos"], queryFn: () => custos(), enabled: q.data?.allowed === true, retry: false, staleTime: 60_000 });
   const [terms, setTerms] = useState("");
   const [tattooWarning, setTattooWarning] = useState("");
   useEffect(() => { supabase.from("safety_config").select("blocked_terms,tattoo_disclaimer").eq("id", 1).maybeSingle().then(({ data }) => { setTerms((data?.blocked_terms ?? []).join(", ")); setTattooWarning(data?.tattoo_disclaimer ?? ""); }); }, []);
@@ -87,6 +89,12 @@ function Admin() {
         {eq.error && <EstadoErro className="mt-3" titulo="Não foi possível carregar os erros" onTentarNovamente={() => void eq.refetch()} recarregando={eq.isFetching} />}
         {eq.data && (eq.data.ok ? <ErrosPainel dados={eq.data} /> : <Aviso tom="atencao" titulo="Erros indisponíveis" className="mt-3">{eq.data.motivo}</Aviso>)}
       </section>
+      <section><h2 className={TITULO_SECAO}>Custo de IA (30 dias)</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Custo real registrado em <code>core.ai_runs</code>. É o que o gateway usa para o uso justo e o orçamento diário.</p>
+        {cq.isLoading && <CarregandoInline rotulo="Carregando custos…" className="mt-3" />}
+        {cq.error && <EstadoErro className="mt-3" titulo="Não foi possível carregar os custos" onTentarNovamente={() => void cq.refetch()} recarregando={cq.isFetching} />}
+        {cq.data && (cq.data.ok ? <CustosPainel dados={cq.data} /> : <Aviso tom="atencao" titulo="Custos indisponíveis" className="mt-3">{cq.data.motivo}</Aviso>)}
+      </section>
       <section><h2 className={TITULO_SECAO}>Status das integrações</h2>
         <ul className="mt-3 space-y-1 text-sm">{CONNECTORS.map(([n, s]) => <li key={n} className="flex justify-between gap-4 border-b py-1"><span>{n}</span><span className="text-right text-muted-foreground">{n?.startsWith("Sugestões") && !d.aiConfigured ? "Não configurado" : s}</span></li>)}</ul></section>
       <section><h2 className={TITULO_SECAO}>Diretrizes de linguagem da Jornada</h2><ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground"><li>Encorajar, nunca cobrar progresso.</li><li>“Não funcionou” é aprendizado.</li><li>Relatórios enfatizam aprendizado, nunca comparação.</li><li>Notas emocionais nunca são exportadas nem compartilhadas; admins não veem fotos, notas ou reflexões.</li></ul></section>
@@ -105,6 +113,48 @@ function Admin() {
 
 type FunilOk = Extract<FunilResposta, { ok: true }>;
 type ErrosOk = Extract<ErrosResposta, { ok: true }>;
+type CustosOk = Extract<CustosResposta, { ok: true }>;
+
+function CustosPainel({ dados }: { dados: CustosOk }) {
+  const usd = (valor: number) => `US$ ${valor.toFixed(2).replace(".", ",")}`;
+  const alerta = dados.hojeUsd >= dados.orcamentoDiarioReferenciaUsd * 0.8;
+  return (
+    <div className="mt-3 space-y-5">
+      {alerta && (
+        <Aviso tom="atencao" titulo="Custo de hoje perto do orçamento">
+          {usd(dados.hojeUsd)} de referência {usd(dados.orcamentoDiarioReferenciaUsd)}. Se o orçamento do gateway for atingido, as imagens pausam automaticamente.
+        </Aviso>
+      )}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Cartao compacto><div className="text-sm text-muted-foreground">Últimos {dados.janelaDias} dias</div><div className="font-display text-4xl">{usd(dados.totalUsd)}</div></Cartao>
+        <Cartao compacto><div className="text-sm text-muted-foreground">Hoje</div><div className="font-display text-4xl">{usd(dados.hojeUsd)}</div></Cartao>
+        <Cartao compacto><div className="text-sm text-muted-foreground">Imagens geradas</div><div className="font-display text-4xl">{dados.imagens}</div></Cartao>
+      </div>
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <h3 className="text-sm font-medium">Top 5 por custo</h3>
+          {dados.topUsuarios.length ? (
+            <ol className="mt-2 space-y-1 text-sm">
+              {dados.topUsuarios.map((u) => (
+                <li key={u.usuario} className="flex items-baseline justify-between gap-3 border-b py-1">
+                  <span className="font-mono text-xs text-muted-foreground">{u.usuario.slice(0, 8)}…</span>
+                  <span>{usd(u.custoUsd)} · {u.runs} runs</span>
+                </li>
+              ))}
+            </ol>
+          ) : <p className="mt-2 text-sm text-muted-foreground">Nenhuma execução no período.</p>}
+        </div>
+        <div>
+          <h3 className="text-sm font-medium">Últimos 7 dias</h3>
+          <table className="mt-2 w-full text-sm">
+            <thead><tr className="text-left text-xs text-muted-foreground"><th className="py-1 font-normal">Dia</th><th className="font-normal">Custo</th></tr></thead>
+            <tbody>{dados.serie.map((d) => <tr key={d.dia} className="border-t"><td className="py-1">{d.dia}</td><td>{usd(d.custoUsd)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ErrosPainel({ dados }: { dados: ErrosOk }) {
   return (

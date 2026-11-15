@@ -23,7 +23,7 @@ export const passStatus = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context: { userId } }) => statusEntitlement(userId, 'pass'));
 
-/** Status do Plano Profissional (sugestões de IA ilimitadas para quem é da área). */
+/** Status do Plano Profissional (uso justo: 150 imagens e 1.200 análises por mês). */
 export const proStatus = createServerFn({ method: 'POST' })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context: { userId } }) => statusEntitlement(userId, 'pro'));

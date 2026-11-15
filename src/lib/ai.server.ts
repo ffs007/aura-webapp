@@ -19,10 +19,17 @@ function friendlyError(status: number, body: string): string {
   let message = body;
   try { message = String(JSON.parse(body).error ?? body); } catch { /* texto simples */ }
   if (status === 401) return "Entre na sua conta para usar a IA.";
-  if (status === 402) return "Você usou suas gerações gratuitas. O Aura Pass libera mais.";
+  if (status === 402) {
+    // Assinante no uso justo do mês: a mensagem do gateway já explica o limite.
+    if (/limite de \d+ (an[áa]lises|imagens)/i.test(message)) return message;
+    return "Você usou suas gerações gratuitas. O Aura Pass libera mais.";
+  }
   if (status === 403 && /consent/i.test(body)) return "Ative as permissões de IA e fotos em Configurações.";
-  if (status === 403) return "Acesso à IA bloqueado. Verifique as permissões em Configurações.";
-  if (status === 429) return "Muitas solicitações agora. Tente novamente em instantes.";
+  if (status === 403) return message || "Acesso à IA bloqueado. Verifique as permissões em Configurações.";
+  if (status === 429) {
+    if (/aguarde/i.test(message)) return message;
+    return "Muitas solicitações agora. Tente novamente em instantes.";
+  }
   return message || "O serviço de IA não respondeu. Tente novamente.";
 }
 
