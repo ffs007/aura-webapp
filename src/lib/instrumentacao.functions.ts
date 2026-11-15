@@ -115,6 +115,107 @@ export const errosInstrumentacao = createServerFn({ method: "POST" })
     }
   });
 
+export type CustosResposta =
+  | {
+      ok: true;
+      janelaDias: number;
+      totalUsd: number;
+      hojeUsd: number;
+      imagens: number;
+      orcamentoDiarioReferenciaUsd: number;
+      topUsuarios: { usuario: string; custoUsd: number; runs: number }[];
+      serie: { dia: string; custoUsd: number }[];
+    }
+  | { ok: false; motivo: string };
+
+const JANELA_CUSTO_DIAS = 30;
+const LIMITE_CUSTO_LINHAS = 10_000;
+/** Mesmo valor padrão usado pelo gateway (IMAGE_DAILY_BUDGET_USD). */
+const ORCAMENTO_DIARIO_REFERENCIA = 15;
+const TAREFA_DE_IMAGEM = /render|\.edit|\.sim|tryon|adjust/;
+
+/** Custo real de IA (core.ai_runs) dos últimos 30 dias — admin-only. */
+export const custosInstrumentacao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<CustosResposta> => {
+    try {
+      const { data: isAdmin } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "admin",
+      });
+      if (!isAdmin) return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+
+      const agora = new Date();
+      const inicio = new Date(agora.getTime() - JANELA_CUSTO_DIAS * 24 * 60 * 60 * 1000).toISOString();
+      const inicioDia = diaLocal(agora.toISOString());
+      // `core.ai_runs` fica em outro schema: lemos via REST com service role
+      // (admin já validado acima). O contrato tipado cobre só `public`.
+      const url = process.env["SUPABASE_URL"];
+      const chaveServico = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+      if (!url || !chaveServico) return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+      const filtros = new URLSearchParams({
+        select: "user_id,task_id,cost_usd,created_at",
+        status: "eq.completed",
+        created_at: `gte.${inicio}`,
+        limit: String(LIMITE_CUSTO_LINHAS),
+      });
+      const resposta = await fetch(`${url}/rest/v1/ai_runs?${filtros}`, {
+        headers: {
+          apikey: chaveServico,
+          Authorization: `Bearer ${chaveServico}`,
+          "Accept-Profile": "core",
+        },
+      });
+      if (!resposta.ok) return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+      const linhas = (await resposta.json()) as {
+        user_id: string;
+        task_id: string;
+        cost_usd: number | string | null;
+        created_at: string;
+      }[];
+      let totalUsd = 0;
+      let hojeUsd = 0;
+      let imagens = 0;
+      const porUsuario = new Map<string, { custoUsd: number; runs: number }>();
+      const porDia = new Map<string, number>();
+      for (const linha of linhas) {
+        const custo = Number(linha.cost_usd) || 0;
+        totalUsd += custo;
+        if (diaLocal(linha.created_at) === inicioDia) hojeUsd += custo;
+        if (TAREFA_DE_IMAGEM.test(linha.task_id)) imagens += 1;
+        const atual = porUsuario.get(linha.user_id) ?? { custoUsd: 0, runs: 0 };
+        atual.custoUsd += custo;
+        atual.runs += 1;
+        porUsuario.set(linha.user_id, atual);
+        porDia.set(diaLocal(linha.created_at), (porDia.get(diaLocal(linha.created_at)) ?? 0) + custo);
+      }
+
+      const topUsuarios = [...porUsuario.entries()]
+        .map(([usuario, valor]) => ({ usuario, custoUsd: Math.round(valor.custoUsd * 1000) / 1000, runs: valor.runs }))
+        .sort((a, b) => b.custoUsd - a.custoUsd)
+        .slice(0, 5);
+
+      const serie: { dia: string; custoUsd: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const dia = diaLocal(new Date(agora.getTime() - i * 24 * 60 * 60 * 1000).toISOString());
+        serie.push({ dia: rotuloDia(dia), custoUsd: Math.round((porDia.get(dia) ?? 0) * 1000) / 1000 });
+      }
+
+      return {
+        ok: true,
+        janelaDias: JANELA_CUSTO_DIAS,
+        totalUsd: Math.round(totalUsd * 100) / 100,
+        hojeUsd: Math.round(hojeUsd * 100) / 100,
+        imagens,
+        orcamentoDiarioReferenciaUsd: ORCAMENTO_DIARIO_REFERENCIA,
+        topUsuarios,
+        serie,
+      };
+    } catch {
+      return { ok: false, motivo: MOTIVO_INDISPONIVEL };
+    }
+  });
+
 export type FunilResposta =
   | {
       ok: true;

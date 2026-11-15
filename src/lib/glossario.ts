@@ -66,7 +66,7 @@ export const GLOSSARIO: TermoGlossario[] = [
   {
     termo: "Aura Pass",
     definicao:
-      "A assinatura mensal que libera as gerações de imagem e regenerações; cancele quando quiser.",
+      "A assinatura mensal com uso justo de 50 imagens por mês (até 12 por dia) e mais análises de texto; cancele quando quiser.",
   },
   {
     termo: "Status",

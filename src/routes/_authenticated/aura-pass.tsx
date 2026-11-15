@@ -78,11 +78,11 @@ function Page() {
       ) : (
         <Cartao className="space-y-5">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className={TITULO_SECAO}>Tudo liberado</h2>
+            <h2 className={TITULO_SECAO}>Uso justo, sem sustos</h2>
             <p className="text-2xl font-semibold">{AURA_PASS_PRECO}</p>
           </div>
           <ul className="space-y-2 text-sm">
-            <li>✦ Gerações de imagem sem limite justo de teste — as 5 gratuitas viram passado</li>
+            <li>✦ Uso justo: <strong>50 imagens por mês</strong> e até 12 por dia — o limite renova todo mês</li>
             <li>✦ Interpretação, geração e verificação de tatuagens e looks sem interrupção</li>
             <li>✦ Vale no site e no app com a mesma conta</li>
             <li>✦ Cancele quando quiser, sem multa</li>
