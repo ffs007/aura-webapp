@@ -37,6 +37,71 @@ export const interpretJsonSchema = {
   },
 };
 
+/** Coage qualquer valor a texto curto e limpo (números são aceitos). */
+function texto(bruto: unknown, max: number): string {
+  if (typeof bruto === "number" && Number.isFinite(bruto)) return String(bruto).slice(0, max);
+  if (typeof bruto !== "string") return "";
+  return bruto.replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+/**
+ * Converte o JSON da IA em brief utilizável para tatuagem.
+ *
+ * Correção 2026-11-15: `tattooBriefSchema.safeParse` reprovava o pedido inteiro
+ * por um campo fora do limite (texto longo, `elementos` acima de 8, enum
+ * inesperado) e a tela dizia "Não consegui entender o pedido com segurança" —
+ * parecia censura, era validação. Agora o JSON é coagido, aparado e completado
+ * com inferência (tipo/lateralidade/preview) em vez de descartado.
+ */
+export function normalizarTattooBrief(bruto: unknown): TattooBrief | null {
+  if (!bruto || typeof bruto !== "object") return null;
+  const d = bruto as Record<string, unknown>;
+  const pedido = texto(d["texto"], 160);
+  const elementos = (Array.isArray(d["elementos"]) ? d["elementos"] : [])
+    .map((e) => texto(e, 80))
+    .filter(Boolean)
+    .slice(0, 8);
+  const local = texto(d["local_corpo"] ?? d["local"], 120);
+  const tipoBruto = texto(d["tipo"], 20).toLowerCase();
+
+  // Tipo: respeita o que o modelo disse; se faltou/veio estranho, infere pelos dados.
+  let tipo: TattooBrief["tipo"];
+  if (tipoBruto === "lettering" || tipoBruto === "simbolo" || tipoBruto === "composicao") tipo = tipoBruto;
+  else if (pedido && elementos.length) tipo = "composicao";
+  else if (pedido) tipo = "lettering";
+  else tipo = "simbolo";
+
+  // Sem texto não há lettering possível e sem elemento não há símbolo: aí sim não dá para seguir.
+  if (tipo === "lettering" && !pedido) return null;
+  if (tipo === "simbolo" && !elementos.length) return null;
+
+  const lateralidadeBruta = texto(d["lateralidade"], 20).toLowerCase();
+  const lateralidadeValida: TattooBrief["lateralidade"] = ["esquerda", "direita", "central", "nao_se_aplica"].includes(lateralidadeBruta)
+    ? (lateralidadeBruta as TattooBrief["lateralidade"])
+    : /esquerd/i.test(local)
+      ? "esquerda"
+      : /direit/i.test(local)
+        ? "direita"
+        : "nao_se_aplica";
+  const previewValidado: TattooBrief["preview"] = texto(d["preview"], 20).toLowerCase() === "isolado" ? "isolado" : "no_corpo";
+  const duvidas = (Array.isArray(d["duvidas"]) ? d["duvidas"] : []).map((x) => texto(x, 200)).filter(Boolean).slice(0, 3);
+
+  const brief: TattooBrief = {
+    tipo,
+    elementos,
+    lateralidade: lateralidadeValida,
+    preview: previewValidado,
+    duvidas,
+    ...(pedido ? { texto: pedido } : {}),
+    ...(texto(d["fonte_estilo"], 80) ? { fonte_estilo: texto(d["fonte_estilo"], 80) } : {}),
+    ...(local ? { local_corpo: local } : {}),
+    ...(texto(d["tamanho"], 60) ? { tamanho: texto(d["tamanho"], 60) } : {}),
+    ...(texto(d["estilo"], 80) ? { estilo: texto(d["estilo"], 80) } : {}),
+  };
+  const parsed = tattooBriefSchema.safeParse(brief);
+  return parsed.success ? parsed.data : null;
+}
+
 /**
  * Prompt determinístico para o modelo de imagem — entidades explícitas + negativas obrigatórias.
  *
