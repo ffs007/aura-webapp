@@ -5,37 +5,25 @@ import { Button } from "@/components/ui/button";
 import { AppMenu } from "@/components/AppMenu";
 import { BuscaGlobal } from "@/components/BuscaGlobal";
 import { Notificacoes } from "@/components/Notificacoes";
-import { TrilhaPicker } from "@/components/TrilhaPicker";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useModoVisual } from "@/hooks/useModoVisual";
 import { FOCO } from "@/lib/design";
-import { dispensarTrilhas, lerTrilhas, linksVisiveis, trilhasDispensadas, type TrilhaKey } from "@/lib/trilhas";
+import { destinoSeguro } from "@/lib/navegacao";
+import {
+  ATALHOS, FERRAMENTAS, modulosNaBarra, emBreve,
+  DENSIDADES, lerDensidade, salvarDensidade, classeDensidade, type Densidade,
+} from "@/lib/navegacao-primaria";
 
 function erroDeConexao(): never {
   throw new Error("NETWORK");
 }
-
-/** Nav enxuta do modo simples: o resto fica em "Mais opções". */
-const LINKS_SIMPLES: [string, string][] = [
-  ["/studio", "Estúdio"],
-  ["/dashboard", "Sugestões"],
-  ["/profissionais", "Profissionais"],
-];
-
-const MAIS_OPCOES: [string, string][] = [
-  ["/dna", "DNA Visual"],
-  ["/compare", "Comparar"],
-  ["/export", "Exportar"],
-  ["/estetica", "✨ Estética"],
-  ["/modelo", "👤 Modelo"],
-  ["/retrato", "📸 Retrato"],
-  ["/aura-pass", "✦ Pass"],
-];
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -48,15 +36,17 @@ export const Route = createFileRoute("/_authenticated")({
       // quando realmente não há sessão.
       const { data: sessao } = await supabase.auth.getSession();
       user = sessao.session?.user ?? null;
-      if (!user) {
-        const offline = typeof navigator !== "undefined" && !navigator.onLine;
-        throw redirect({
-          to: "/auth",
-          // location.href já traz pathname + query string; location.search aqui é
-          // um objeto (search parseado), não uma string.
-          search: { motivo: offline ? "conexao" : "sessao", redirect: location.href },
-        });
-      }
+    if (!user) {
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      const destino = destinoSeguro(location.href);
+      throw redirect({
+        to: "/auth",
+        // location.href já traz pathname + query string (interno do roteador).
+        // destinoSeguro garante na EMISSÃO que só caminhos internos passam —
+        // o consumo em /auth valida de novo (defesa em duas camadas).
+        search: { motivo: offline ? "conexao" : "sessao", ...(destino ? { redirect: destino } : {}) },
+      });
+    }
     }
     if (location.pathname !== "/consent") {
       const { data: c, error: cErro } = await supabase.from("consents").select("user_id").eq("user_id", user.id).maybeSingle();
@@ -76,25 +66,27 @@ export const Route = createFileRoute("/_authenticated")({
 function Shell() {
   const nav = useNavigate();
   const [modo] = useModoVisual();
-  const simples = modo === "simples";
-  const [trilhas, setTrilhas] = useState<TrilhaKey[]>([]);
-  const [pickerAberto, setPickerAberto] = useState(false);
   const [saindo, setSaindo] = useState(false);
+  const [densidade, setDensidade] = useState<Densidade>(() => lerDensidade());
+  const largura = classeDensidade(densidade);
+  const modulos = modulosNaBarra();
+  const emBreveLista = emBreve();
 
   useEffect(() => {
-    const carregar = () => {
-      const salvas = lerTrilhas();
-      setTrilhas(salvas);
-      // Primeira visita: abre uma vez. "Agora não" é lembrado para o modal não
-      // voltar a cada navegação (era um loop que travava o uso).
-      if (!salvas.length && !trilhasDispensadas()) setPickerAberto(true);
+    const sincronizar = () => setDensidade(lerDensidade());
+    window.addEventListener("aura:densidade", sincronizar);
+    window.addEventListener("storage", sincronizar);
+    return () => {
+      window.removeEventListener("aura:densidade", sincronizar);
+      window.removeEventListener("storage", sincronizar);
     };
-    carregar();
-    window.addEventListener("aura:trilhas", carregar);
-    return () => window.removeEventListener("aura:trilhas", carregar);
   }, []);
 
-  const links = simples ? LINKS_SIMPLES : linksVisiveis(trilhas);
+  function trocarDensidade(d: Densidade) {
+    salvarDensidade(d);
+    setDensidade(d);
+    window.dispatchEvent(new Event("aura:densidade"));
+  }
 
   async function sair() {
     if (saindo) return;
@@ -110,76 +102,86 @@ function Shell() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 overflow-x-auto px-4 py-3 md:px-6">
+        <div className={`mx-auto flex w-full ${largura} items-center gap-3 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8`}>
           <Link to="/studio" className={`font-display text-xl whitespace-nowrap ${FOCO}`}>Aura <em>ID</em></Link>
+
+          {/* Navegação primária: sempre os mesmos módulos, na mesma ordem. */}
           <nav aria-label="Navegação principal" className="hidden flex-1 gap-1 md:flex">
-            {links.map(([to, label]) => (
+            {ATALHOS.map(([to, label]) => (
               <Link
                 key={to}
                 to={to}
-                className={`rounded-full px-3 py-1.5 text-sm whitespace-nowrap text-muted-foreground hover:bg-secondary hover:text-foreground ${FOCO}`}
+                className={`rounded-full px-3 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${FOCO}`}
                 activeProps={{ className: "bg-secondary text-foreground", "aria-current": "page" }}
               >
                 {label}
               </Link>
             ))}
+            <span aria-hidden className="mx-1 my-2 w-px shrink-0 bg-border" />
+            {modulos.map((m) => (
+              <Link
+                key={m.id}
+                to={m.href}
+                className={`rounded-full px-3 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${FOCO}`}
+                activeProps={{ className: "bg-secondary text-foreground", "aria-current": "page" }}
+              >
+                {m.rotulo}
+              </Link>
+            ))}
           </nav>
+
           <div className="ml-auto flex items-center gap-1.5">
-            {/* Busca e notificações aparecem no desktop e no mobile. */}
             <BuscaGlobal />
             <Notificacoes />
             <div className="hidden items-center gap-2 md:flex">
-              {simples ? (
-                <>
-                  <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/modelo">👤 Meu Modelo</Link></Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="outline" className="whitespace-nowrap">Mais opções</Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      {MAIS_OPCOES.map(([to, label]) => (
-                        <DropdownMenuItem key={to} asChild>
-                          <Link to={to}>{label}</Link>
+              <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/modelo">👤 Meu Modelo</Link></Button>
+              <Button size="sm" asChild variant="outline" className="whitespace-nowrap border-accent/50 text-accent"><Link to="/aura-pass">✦ Pass</Link></Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="whitespace-nowrap">Mais</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {FERRAMENTAS.map(([to, label]) => (
+                    <DropdownMenuItem key={to} asChild>
+                      <Link to={to}>{label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                  {emBreveLista.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">Em breve</DropdownMenuLabel>
+                      {emBreveLista.map((m) => (
+                        <DropdownMenuItem key={m.id} disabled aria-disabled title="Em breve">
+                          <span className="opacity-60">{m.icone} {m.rotulo}</span>
+                          <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">em breve</span>
                         </DropdownMenuItem>
                       ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              ) : (
-                <>
-                  <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/estetica">✨ Estética</Link></Button>
-                  <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/modelo">👤 Modelo</Link></Button>
-                  <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/retrato">📸 Retrato</Link></Button>
-                  <Button size="sm" asChild variant="outline" className="whitespace-nowrap border-accent/50 text-accent"><Link to="/aura-pass">✦ Pass</Link></Button>
-                </>
-              )}
-              <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => setPickerAberto(true)}>
-                Trilhas{trilhas.length ? ` · ${trilhas.length}` : ""}
-              </Button>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">Densidade</DropdownMenuLabel>
+                  {DENSIDADES.map((d) => (
+                    <DropdownMenuItem
+                      key={d.id}
+                      onSelect={() => trocarDensidade(d.id)}
+                      className={densidade === d.id ? "bg-secondary font-medium" : ""}
+                    >
+                      {d.rotulo}{densidade === d.id ? " ✓" : ""}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button size="sm" variant="ghost" onClick={() => void sair()} disabled={saindo}>{saindo ? "Saindo…" : "Sair"}</Button>
             </div>
+            {/* Mobile: módulos e ferramentas no menu de hambúrguer. */}
             <div className="flex items-center gap-2 md:hidden">
-              <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => setPickerAberto(true)}>
-                Trilhas{trilhas.length ? ` · ${trilhas.length}` : ""}
-              </Button>
-              <AppMenu
-                trilhas={trilhas}
-                modo={modo}
-                saindo={saindo}
-                onSair={() => void sair()}
-                onAbrirTrilhas={() => setPickerAberto(true)}
-              />
+              <AppMenu modo={modo} saindo={saindo} onSair={() => void sair()} />
             </div>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-10"><Outlet /></main>
-      <TrilhaPicker
-        aberto={pickerAberto}
-        onFechar={() => setPickerAberto(false)}
-        onDispensar={dispensarTrilhas}
-        iniciais={trilhas}
-      />
+
+      <main className={`mx-auto w-full ${largura} px-4 py-8 sm:px-6 md:py-10 lg:px-8`}><Outlet /></main>
     </div>
   );
 }

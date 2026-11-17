@@ -10,33 +10,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { linksVisiveis, type TrilhaKey } from "@/lib/trilhas";
 import { FOCO } from "@/lib/design";
 import type { ModoVisual } from "@/hooks/useModoVisual";
+import {
+  ATALHOS, FERRAMENTAS, modulosNaBarra, emBreve,
+  DENSIDADES, lerDensidade, salvarDensidade, type Densidade,
+} from "@/lib/navegacao-primaria";
 
-/** Atalhos fixos que já aparecem em "Criar" e "Ferramentas" — saem de "Meus módulos". */
-const CRIAR: [string, string][] = [
-  ["/studio", "Estúdio"],
-  ["/dashboard", "Sugestões"],
-];
-
-const FERRAMENTAS: [string, string][] = [
-  ["/dna", "DNA Visual"],
-  ["/compare", "Comparar"],
-  ["/export", "Exportar"],
-  ["/tatuagem/vitrine", "🖼️ Vitrine"],
-  ["/profissionais", "Profissionais"],
-  ["/estetica", "✨ Estética"],
-  ["/modelo", "👤 Modelo"],
-  ["/retrato", "📸 Retrato"],
-  ["/aura-pass", "✦ Pass"],
-];
-
-/** No modo simples, tudo além de Profissionais fica atrás de "Mais opções". */
-const FERRAMENTAS_AVANCADAS = FERRAMENTAS.filter(([to]) => to !== "/profissionais");
-
-const JA_NO_MENU = new Set([...CRIAR, ...FERRAMENTAS].map(([to]) => to));
-JA_NO_MENU.add("/settings"); // Configurações já está na seção Conta
+/** No modo simples, ferramentas avançadas ficam atrás de "Mais opções". */
+const AVANCADAS = FERRAMENTAS.filter(([to]) => !["/modelo", "/retrato"].includes(to));
 
 const itemLink =
   `flex min-h-11 items-center rounded-lg px-3 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground ${FOCO}`;
@@ -66,38 +48,36 @@ function ItemLink({ to, label, onNavigate }: { to: string; label: string; onNavi
   );
 }
 
+function ItemEmBreve({ rotulo, icone }: { rotulo: string; icone: string }) {
+  return (
+    <li>
+      <span className="flex min-h-11 cursor-default items-center rounded-lg px-3 text-sm opacity-60" aria-disabled title="Em breve">
+        {icone} {rotulo}
+        <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">em breve</span>
+      </span>
+    </li>
+  );
+}
+
 /**
- * Menu mobile (< md): hambúrguer de 44px que abre um Sheet com os módulos
- * agrupados (Criar, Meus módulos, Ferramentas e Conta). A nav rolável do
- * header some no mobile; no desktop este componente fica oculto.
- *
- * No modo simples o menu fica enxuto: Profissionais continua visível e o resto
- * (módulos das trilhas + ferramentas avançadas) vai para "Mais opções".
+ * Menu mobile (< md): hambúrguer que abre um Sheet com os grupos fixos —
+ * Criar, Módulos (sempre os 4 essenciais), Ferramentas e Conta. Igual à barra
+ * do desktop: mesma ordem, mesmos rótulos, nada depende de trilhas.
  */
-export function AppMenu({
-  trilhas,
-  modo,
-  saindo,
-  onSair,
-  onAbrirTrilhas,
-}: {
-  trilhas: TrilhaKey[];
-  modo: ModoVisual;
-  saindo: boolean;
-  onSair: () => void;
-  onAbrirTrilhas: () => void;
-}) {
+export function AppMenu({ modo, saindo, onSair }: { modo: ModoVisual; saindo: boolean; onSair: () => void }) {
   const [aberto, setAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
+  const [densidade, setDensidade] = useState<Densidade>(() => lerDensidade());
   const fechar = () => setAberto(false);
-  // linksVisiveis já deduplica /cabelo (Cabelo + Barbearia); aqui só tiramos os
-  // atalhos fixos que já estão nas seções Criar/Ferramentas para não repetir.
-  const meusModulos = linksVisiveis(trilhas).filter(([to]) => !JA_NO_MENU.has(to));
-  const abrirTrilhas = () => {
-    fechar();
-    onAbrirTrilhas();
-  };
   const simples = modo === "simples";
+  const modulos = modulosNaBarra();
+  const emBreveLista = emBreve();
+
+  const trocarDensidade = (d: Densidade) => {
+    salvarDensidade(d);
+    setDensidade(d);
+    window.dispatchEvent(new Event("aura:densidade"));
+  };
 
   return (
     <Sheet open={aberto} onOpenChange={setAberto}>
@@ -122,32 +102,25 @@ export function AppMenu({
         </SheetHeader>
         <nav aria-label="Menu principal" className="mt-5 space-y-5">
           <Secao titulo="Criar">
-            {CRIAR.map(([to, label]) => (
+            {ATALHOS.map(([to, label]) => (
               <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
             ))}
           </Secao>
 
-          {!simples && (
-            <Secao titulo="Meus módulos">
-              {meusModulos.length ? (
-                meusModulos.map(([to, label]) => (
-                  <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
-                ))
-              ) : (
-                <li>
-                  <button type="button" onClick={abrirTrilhas} className={`${itemLink} w-full`}>
-                    Escolha trilhas para ver seus módulos
-                  </button>
-                </li>
-              )}
-            </Secao>
-          )}
+          <Secao titulo="Módulos">
+            {modulos.map((m) => (
+              <ItemLink key={m.id} to={m.href} label={`${m.icone} ${m.rotulo}`} onNavigate={fechar} />
+            ))}
+            {emBreveLista.map((m) => (
+              <ItemEmBreve key={m.id} rotulo={m.rotulo} icone={m.icone} />
+            ))}
+          </Secao>
 
           <Secao titulo="Ferramentas">
+            <ItemLink to="/modelo" label="👤 Meu Modelo" onNavigate={fechar} />
+            <ItemLink to="/aura-pass" label="✦ Pass" onNavigate={fechar} />
             {simples ? (
               <>
-                <ItemLink to="/profissionais" label="Profissionais" onNavigate={fechar} />
-                <ItemLink to="/modelo" label="👤 Meu Modelo" onNavigate={fechar} />
                 <li>
                   <Button
                     type="button"
@@ -161,48 +134,46 @@ export function AppMenu({
                   </Button>
                 </li>
                 {maisAberto && (
-                  <li id="appmenu-mais-opcoes" className="space-y-2 pt-1">
-                    <div>
-                      <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Meus módulos</p>
-                      <ul className="space-y-0.5">
-                        {meusModulos.length ? (
-                          meusModulos.map(([to, label]) => (
-                            <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
-                          ))
-                        ) : (
-                          <li>
-                            <button type="button" onClick={abrirTrilhas} className={`${itemLink} w-full`}>
-                              Escolha trilhas para ver seus módulos
-                            </button>
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Avançado</p>
-                      <ul className="space-y-0.5">
-                        {FERRAMENTAS_AVANCADAS.map(([to, label]) => (
-                          <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
-                        ))}
-                      </ul>
-                    </div>
+                  <li id="appmenu-mais-opcoes">
+                    <ul className="space-y-0.5 pt-1">
+                      <ItemLink to="/retrato" label="📸 Aura Retrato" onNavigate={fechar} />
+                      {AVANCADAS.map(([to, label]) => (
+                        <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
+                      ))}
+                    </ul>
                   </li>
                 )}
               </>
             ) : (
-              FERRAMENTAS.map(([to, label]) => (
-                <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
-              ))
+              <>
+                <ItemLink to="/retrato" label="📸 Aura Retrato" onNavigate={fechar} />
+                {AVANCADAS.map(([to, label]) => (
+                  <ItemLink key={to} to={to} label={label} onNavigate={fechar} />
+                ))}
+              </>
             )}
           </Secao>
 
           <Secao titulo="Conta">
-            <li>
-              <Button type="button" variant="ghost" className={itemBotao} onClick={abrirTrilhas}>
-                Trilhas{trilhas.length ? ` · ${trilhas.length}` : ""}
-              </Button>
-            </li>
             <ItemLink to="/settings" label="Configurações" onNavigate={fechar} />
+            <li>
+              <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Densidade — {densidade}</p>
+              <ul className="grid grid-cols-3 gap-1 px-3 pb-1">
+                {DENSIDADES.map((d) => (
+                  <li key={d.id}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={densidade === d.id ? "default" : "outline"}
+                      className={`w-full ${FOCO}`}
+                      onClick={() => trocarDensidade(d.id)}
+                    >
+                      {d.rotulo}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </li>
             <li>
               <Button
                 type="button"

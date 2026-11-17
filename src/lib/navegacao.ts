@@ -12,6 +12,11 @@ const KEY = "aura.destino";
 export function destinoSeguro(valor: unknown): string | null {
   if (typeof valor !== "string") return null;
   if (!valor.startsWith("/") || valor.startsWith("//")) return null;
+  // Barra invertida: o navegador normaliza "\" como "/" — "/\evil.com" viraria
+  // "//evil.com" (redirecionamento externo). Rejeitamos qualquer ocorrência.
+  if (valor.includes("\\")) return null;
+  // Qualquer esquema embutido (data:, blob:, etc.) também está fora.
+  if (/[a-zA-Z][a-zA-Z0-9+.-]*:/.test(valor)) return null;
   return valor;
 }
 
