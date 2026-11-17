@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import { LoaderCircle, Send } from "lucide-react";
+import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CARTAO_COMPACTO } from "@/lib/design";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { CARTAO_COMPACTO, FOCO } from "@/lib/design";
 import { cn } from "@/lib/utils";
+import { interpretarAjuda } from "@/lib/ajuda.functions";
 
 /** Atalhos do assistente guiado: cada um leva direto ao ponto de partida certo. */
 const ATALHOS = [
@@ -12,18 +18,38 @@ const ATALHOS = [
   { emoji: "✨", titulo: "Só explorar", href: "/studio", descricao: "Abre o Estúdio em branco para você escolher tudo do seu jeito." },
 ] as const;
 
-/** Botão flutuante "?" (canto inferior esquerdo) com atalhos de ajuda em todas as páginas. */
+/**
+ * Botão flutuante "?" — assistente-guia (Prompt 1 do ROI).
+ * Camada 1: digite o que quer, a IA interpreta e navega.
+ * Camada 2: atalhos rápidos para quem já sabe o caminho.
+ */
 export function GuiaRapidoAjuda() {
   const [aberto, setAberto] = useState(false);
+  const interpretar = useServerFn(interpretarAjuda);
+  const [texto, setTexto] = useState("");
+  const [pensando, setPensando] = useState(false);
 
-  // O atalho `?` é detectado no BuscaGlobal (que conhece o foco do teclado) e
-  // chega aqui por este evento global, mantendo o comportamento da busca e da
-  // ajuda em um único lugar.
   useEffect(() => {
     const abrirAjuda = () => setAberto(true);
     window.addEventListener("aura:ajuda", abrirAjuda);
     return () => window.removeEventListener("aura:ajuda", abrirAjuda);
   }, []);
+
+  async function perguntar() {
+    if (pensando || texto.trim().length < 3) return;
+    setPensando(true);
+    try {
+      const r = await interpretar({ data: { texto: texto.trim() } });
+      setAberto(false);
+      setTexto("");
+      toast(r.explicacao, { icon: "🧭" });
+      window.location.assign(r.rota);
+    } catch {
+      toast.error("Não consegui entender agora — tente um dos atalhos abaixo.");
+    } finally {
+      setPensando(false);
+    }
+  }
 
   return (
     <>
@@ -41,8 +67,32 @@ export function GuiaRapidoAjuda() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Ajuda guiada</DialogTitle>
-            <DialogDescription>Escolha um ponto de partida — cada atalho leva direto para lá.</DialogDescription>
+            <DialogDescription>Diga o que você quer ou escolha um atalho.</DialogDescription>
           </DialogHeader>
+
+          {/* Camada conversacional: a IA interpreta e navega. */}
+          <div className="space-y-2">
+            <form
+              onSubmit={(e) => { e.preventDefault(); void perguntar(); }}
+              className="flex gap-2"
+            >
+              <Input
+                aria-label="O que você quer fazer hoje?"
+                placeholder="ex.: quero arrasar num casamento"
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                maxLength={300}
+                disabled={pensando}
+                className="flex-1"
+              />
+              <Button type="submit" size="sm" disabled={pensando || texto.trim().length < 3} className={FOCO}>
+                {pensando ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+              </Button>
+            </form>
+            {pensando && <p role="status" className="text-xs text-muted-foreground">Pensando no melhor caminho pra você…</p>}
+          </div>
+
+          {/* Camada de atalhos: um clique, direto ao ponto. */}
           <div className="grid gap-2">
             {ATALHOS.map((a) => (
               <a
