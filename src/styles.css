@@ -92,6 +92,55 @@
   --shadow-soft: 0 20px 50px -25px oklch(0.33 0.07 340 / 0.25);
 }
 
+/* ══════════════════════════════════════════════
+   TEMA ESCURO — kit de identidade Íris Serena
+   (tokens oficiais em HEX do aura-id-tokens.css)
+   ══════════════════════════════════════════════ */
+.dark {
+  color-scheme: dark;
+  --background: #1D171B;
+  --foreground: #FFF9F2;
+  --card: #282026;
+  --card-foreground: #FFF9F2;
+  --popover: #282026;
+  --popover-foreground: #FFF9F2;
+  /* Ouro vira primário no escuro: visível, elegante, remete ao ✦ Pass. */
+  --primary: #C9A227;
+  --primary-foreground: #1D171B;
+  --secondary: #32262E;
+  --secondary-foreground: #F3E3D8;
+  --muted: #382A32;
+  --muted-foreground: #DFCEC3;
+  /* Terracota clara p/ contraste em superfície escura. */
+  --accent: #E0A38A;
+  --accent-foreground: #1D171B;
+  --destructive: #F1CFCA;
+  --destructive-foreground: #492B2D;
+  --border: #4B3841;
+  --input: #4B3841;
+  --ring: #E0A38A;
+  --sand: #413039;
+  --sage: #293A30;
+  --ochre: #413320;
+  --chart-1: #E0A38A;
+  --chart-2: #CDE5D0;
+  --chart-3: #956A7F;
+  --chart-4: #F2DBB6;
+  --chart-5: #C9E6E8;
+  --sidebar: #282026;
+  --sidebar-foreground: #FFF9F2;
+  --sidebar-primary: #C9A227;
+  --sidebar-primary-foreground: #1D171B;
+  --sidebar-accent: #32262E;
+  --sidebar-accent-foreground: #F3E3D8;
+  --sidebar-border: #4B3841;
+  --sidebar-ring: #E0A38A;
+  --gradient-aura: radial-gradient(ellipse at 20% 10%, oklch(0.25 0.04 40 / 0.8), transparent 55%),
+    radial-gradient(ellipse at 85% 30%, oklch(0.22 0.04 340 / 0.7), transparent 50%),
+    radial-gradient(ellipse at 50% 100%, oklch(0.2 0.03 150 / 0.6), transparent 60%);
+  --shadow-soft: 0 20px 50px -25px oklch(0 0 0 / 0.6);
+}
+
 @layer base {
   * { border-color: var(--color-border); }
   body {

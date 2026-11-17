@@ -13,6 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { GuiaRapidoAjuda } from "@/components/GuiaRapidoAjuda";
+import { SCRIPT_ANTI_FLASH } from "@/hooks/useTema";
 import { supabase } from "@/integrations/supabase/client";
 import { iniciarInstrumentacao } from "@/lib/instrumentacao";
 import { IMAGEM_COMPARTILHAMENTO, urlAbsoluta } from "@/lib/site";
@@ -142,6 +143,8 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        {/* Anti-flash: aplica o tema salvo ANTES da primeira pintura. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_ANTI_FLASH }} />
       </head>
       <body>
         {children}

@@ -13,6 +13,7 @@ import {
 import { FOCO } from "@/lib/design";
 import type { ModoVisual } from "@/hooks/useModoVisual";
 import { MarcaAura } from "@/components/MarcaAura";
+import { TemaToggle } from "@/components/TemaToggle";
 import {
   ATALHOS, FERRAMENTAS, modulosNaBarra, emBreve,
   DENSIDADES, lerDensidade, salvarDensidade, type Densidade,
@@ -159,6 +160,9 @@ export function AppMenu({ modo, saindo, onSair }: { modo: ModoVisual; saindo: bo
           </Secao>
 
           <Secao titulo="Conta">
+            <li className="px-3 py-1">
+              <TemaToggle />
+            </li>
             <ItemLink to="/settings" label="Configurações" onNavigate={fechar} />
             <li>
               <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Densidade — {densidade}</p>

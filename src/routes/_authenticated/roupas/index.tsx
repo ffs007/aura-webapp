@@ -9,6 +9,7 @@ import { AiLabel } from "@/components/PackageView";
 import { CARTAO_CLICAVEL, CARTAO_DESTAQUE, FOCO, GRADE_CARTOES, TITULO_ITEM } from "@/lib/design";
 import { OUTFIT_STATUS, type Outfit } from "@/lib/clothing";
 import { cn } from "@/lib/utils";
+import { ModuloHero } from "@/components/ModuloHero";
 
 const META = "Seus looks gerados, em teste e já usados.";
 export const Route = createFileRoute("/_authenticated/roupas/")({
@@ -38,6 +39,12 @@ function Looks() {
   const list = all.filter((p) => f === "all" || p.status === f);
   return (
     <div className="space-y-6">
+      <ModuloHero
+        imagem="/cards/roupas.png"
+        sobretitulo="Módulo"
+        titulo={<>Roupas</>}
+        descricao={META}
+      />
       {testing.length > 0 && <div className={`${CARTAO_DESTAQUE} text-sm`}>Você tem {testing.length} {testing.length === 1 ? "look" : "looks"} em teste. Usou? Conte como foi no look.</div>}
       <div className="flex flex-wrap gap-2">{[["all", "todos"], ...Object.entries(OUTFIT_STATUS)].map(([k, l]) => <button key={k} onClick={() => setF(k ?? "all")} aria-pressed={f === k} className={cn("rounded-full px-3 py-1 text-sm", FOCO, f === k ? "bg-primary text-primary-foreground" : "bg-secondary")}>{l}</button>)}</div>
       <div className={GRADE_CARTOES}>

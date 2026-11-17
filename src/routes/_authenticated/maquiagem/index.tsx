@@ -12,6 +12,7 @@ import { CARTAO_CLICAVEL, FOCO, GRADE_CARTOES, TITULO_ITEM } from "@/lib/design"
 import { STATUS_LABEL, type AuraPackage } from "@/lib/aura";
 import { MAKEUP_MODES } from "@/lib/makeup";
 import { cn } from "@/lib/utils";
+import { ModuloHero } from "@/components/ModuloHero";
 
 export const Route = createFileRoute("/_authenticated/maquiagem/")({
   head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }, { title: "Meus looks de maquiagem — Aura ID" }, { name: "description", content: "Looks de maquiagem gerados para você." }, { property: "og:title", content: "Meus looks de maquiagem — Aura ID" }, { property: "og:description", content: "Looks de maquiagem gerados para você." }] }),
@@ -46,6 +47,12 @@ function Looks() {
   const list = all.filter((p) => f === "all" || p.status === f);
   return (
     <div className="space-y-6">
+      <ModuloHero
+        imagem="/cards/maquiagem.png"
+        sobretitulo="Módulo"
+        titulo={<>Maquiagem</>}
+        descricao="Looks gerados pra você — fique com o que fizer sentido."
+      />
       <div className="flex flex-wrap gap-2">{FILTERS.map(([k, l]) => <button key={k} onClick={() => setF(k)} aria-pressed={f === k} className={cn("rounded-full px-3 py-1 text-sm", FOCO, f === k ? "bg-primary text-primary-foreground" : "bg-secondary")}>{l}</button>)}</div>
       <div className={GRADE_CARTOES}>
         {list.map((p) => {

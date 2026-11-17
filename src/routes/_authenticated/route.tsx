@@ -17,6 +17,7 @@ import { useModoVisual } from "@/hooks/useModoVisual";
 import { FOCO } from "@/lib/design";
 import { destinoSeguro } from "@/lib/navegacao";
 import { MarcaAura } from "@/components/MarcaAura";
+import { TemaToggle } from "@/components/TemaToggle";
 import {
   ATALHOS, FERRAMENTAS, modulosNaBarra, emBreve,
   DENSIDADES, lerDensidade, salvarDensidade, classeDensidade, type Densidade,
@@ -138,6 +139,7 @@ function Shell() {
             <BuscaGlobal />
             <Notificacoes />
             <div className="hidden items-center gap-2 md:flex">
+              <TemaToggle compacto />
               <Button size="sm" asChild variant="ghost" className="whitespace-nowrap"><Link to="/modelo">👤 Meu Modelo</Link></Button>
               <Button size="sm" asChild variant="outline" className="whitespace-nowrap border-accent/50 text-accent"><Link to="/aura-pass">✦ Pass</Link></Button>
               <DropdownMenu>
