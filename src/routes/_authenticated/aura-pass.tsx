@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Aviso, CabecalhoPagina, Cartao } from '@/components/estados';
+import { Aviso, Cartao } from '@/components/estados';
 import { TITULO_ITEM, TITULO_SECAO } from '@/lib/design';
 import { passStatus, portalUrl, createCheckout, AURA_PASS_PRECO, type PassStatus } from '@/lib/stripe.functions';
 
@@ -51,11 +51,15 @@ function Page() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <CabecalhoPagina
-        sobretitulo="Assinatura"
-        titulo={<>Aura <em>Pass</em></>}
-        descricao="Mais imagens, sem trava — no app e no site, com a mesma conta."
-      />
+      {/* Herói com a faixa de identidade: brilho dourado do Pass sobre vinho. */}
+      <header className="relative overflow-hidden rounded-2xl border">
+        <img src="/banners/banner-pass.svg" alt="" aria-hidden loading="lazy" className="h-40 w-full object-cover sm:h-48" />
+        <div className="absolute inset-0 flex flex-col justify-center gap-1 p-5 sm:p-8">
+          <span className="text-xs uppercase tracking-widest text-[#E8CA79]">Assinatura</span>
+          <h1 className="font-display text-4xl text-[#FAF5EE] md:text-5xl">Aura <em>Pass</em></h1>
+          <p className="max-w-[16rem] text-sm text-[#F3E3D8] sm:max-w-xs">Mais imagens, sem trava — no app e no site, com a mesma conta.</p>
+        </div>
+      </header>
 
       {checkout === 'success' && (
         <Aviso tom="sucesso">

@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
-import { CabecalhoPagina } from '@/components/estados';
 import { CARTAO, TITULO_ITEM } from '@/lib/design';
 import { GLOSSARIO } from '@/lib/glossario';
 
@@ -45,11 +44,15 @@ const PASSOS = [
 function Page() {
   return (
     <div className="mx-auto max-w-3xl space-y-10">
-      <CabecalhoPagina
-        sobretitulo="Primeira vez? Comece aqui"
-        titulo={<>Guia <em>rápido</em></>}
-        descricao="Cinco passos e você domina o Aura ID. Na ordem — o primeiro é o que muda tudo."
-      />
+      {/* Herói com a faixa de identidade: a linha contínua nasce à direita. */}
+      <header className="relative overflow-hidden rounded-2xl border">
+        <img src="/banners/banner-guia.svg" alt="" aria-hidden loading="lazy" className="h-40 w-full object-cover sm:h-48" />
+        <div className="absolute inset-0 flex flex-col justify-center gap-1 p-5 sm:p-8">
+          <span className="text-xs uppercase tracking-widest text-accent">Primeira vez? Comece aqui</span>
+          <h1 className="font-display text-4xl md:text-5xl">Guia <em>rápido</em></h1>
+          <p className="max-w-[16rem] text-sm text-muted-foreground sm:max-w-xs">Cinco passos e você domina o Aura ID — na ordem.</p>
+        </div>
+      </header>
       <ol className="space-y-6">
         {PASSOS.map((p) => (
           <li key={p.n} className={CARTAO}>

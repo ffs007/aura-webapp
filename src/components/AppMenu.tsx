@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { FOCO } from "@/lib/design";
 import type { ModoVisual } from "@/hooks/useModoVisual";
+import { MarcaAura } from "@/components/MarcaAura";
 import {
   ATALHOS, FERRAMENTAS, modulosNaBarra, emBreve,
   DENSIDADES, lerDensidade, salvarDensidade, type Densidade,
@@ -95,7 +96,10 @@ export function AppMenu({ modo, saindo, onSair }: { modo: ModoVisual; saindo: bo
       </SheetTrigger>
       <SheetContent side="right" className="w-[86vw] max-w-sm overflow-y-auto">
         <SheetHeader className="text-left">
-          <SheetTitle className="font-display text-2xl">Aura <em>ID</em></SheetTitle>
+          <SheetTitle className="flex items-center gap-3 font-display text-2xl">
+            <MarcaAura variante="selo" className="size-9" />
+            Aura <em>ID</em>
+          </SheetTitle>
           <SheetDescription>
             {simples ? "O essencial para começar — o resto fica em Mais opções." : "Criar, acessar seus módulos e cuidar da conta."}
           </SheetDescription>

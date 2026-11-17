@@ -16,6 +16,7 @@ import {
 import { useModoVisual } from "@/hooks/useModoVisual";
 import { FOCO } from "@/lib/design";
 import { destinoSeguro } from "@/lib/navegacao";
+import { MarcaAura } from "@/components/MarcaAura";
 import {
   ATALHOS, FERRAMENTAS, modulosNaBarra, emBreve,
   DENSIDADES, lerDensidade, salvarDensidade, classeDensidade, type Densidade,
@@ -103,7 +104,10 @@ function Shell() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
         <div className={`mx-auto flex w-full ${largura} items-center gap-3 overflow-x-auto px-4 py-3 sm:px-6 lg:px-8`}>
-          <Link to="/studio" className={`font-display text-xl whitespace-nowrap ${FOCO}`}>Aura <em>ID</em></Link>
+          <Link to="/studio" className={`flex items-center gap-2 whitespace-nowrap ${FOCO}`}>
+            <MarcaAura className="size-7 text-primary" titulo="Aura ID — início" />
+            <span className="font-display text-xl leading-none">Aura <em>ID</em></span>
+          </Link>
 
           {/* Navegação primária: sempre os mesmos módulos, na mesma ordem. */}
           <nav aria-label="Navegação principal" className="hidden flex-1 gap-1 md:flex">

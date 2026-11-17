@@ -1,0 +1,534 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "Aura ID · Design Tokens 1.0",
+  "description": "Cores sRGB, OKLCH calculado a partir de sRGB; WCAG 2.2 contrast",
+  "brand": {
+    "primary700": {
+      "hex": "#341424",
+      "rgb": [
+        52,
+        20,
+        36
+      ],
+      "oklch": {
+        "l": 0.24591,
+        "c": 0.05625,
+        "h": 350.771
+      }
+    },
+    "primary500": {
+      "hex": "#4A2036",
+      "rgb": [
+        74,
+        32,
+        54
+      ],
+      "oklch": {
+        "l": 0.31122,
+        "c": 0.0704,
+        "h": 349.308
+      }
+    },
+    "primary300": {
+      "hex": "#956A7F",
+      "rgb": [
+        149,
+        106,
+        127
+      ],
+      "oklch": {
+        "l": 0.57499,
+        "c": 0.06198,
+        "h": 348.423
+      }
+    },
+    "secondary700": {
+      "hex": "#853B25",
+      "rgb": [
+        133,
+        59,
+        37
+      ],
+      "oklch": {
+        "l": 0.4467,
+        "c": 0.10768,
+        "h": 37.246
+      }
+    },
+    "secondary500": {
+      "hex": "#B85C38",
+      "rgb": [
+        184,
+        92,
+        56
+      ],
+      "oklch": {
+        "l": 0.57892,
+        "c": 0.12923,
+        "h": 41.299
+      }
+    },
+    "secondary300": {
+      "hex": "#E0A38A",
+      "rgb": [
+        224,
+        163,
+        138
+      ],
+      "oklch": {
+        "l": 0.76719,
+        "c": 0.08083,
+        "h": 43.231
+      }
+    },
+    "gold": {
+      "hex": "#C9A227",
+      "rgb": [
+        201,
+        162,
+        39
+      ],
+      "oklch": {
+        "l": 0.72801,
+        "c": 0.13798,
+        "h": 89.726
+      }
+    }
+  },
+  "themes": {
+    "light": {
+      "surface": {
+        "background": {
+          "hex": "#FAF5EE",
+          "rgb": [
+            250,
+            245,
+            238
+          ],
+          "oklch": {
+            "l": 0.97209,
+            "c": 0.01073,
+            "h": 76.599
+          }
+        },
+        "card": {
+          "hex": "#FFFDF9",
+          "rgb": [
+            255,
+            253,
+            249
+          ],
+          "oklch": {
+            "l": 0.99447,
+            "c": 0.00569,
+            "h": 84.566
+          }
+        },
+        "secondary": {
+          "hex": "#F5ECE2",
+          "rgb": [
+            245,
+            236,
+            226
+          ],
+          "oklch": {
+            "l": 0.94741,
+            "c": 0.01653,
+            "h": 70.531
+          }
+        },
+        "surface-muted": {
+          "hex": "#F1E6DA",
+          "rgb": [
+            241,
+            230,
+            218
+          ],
+          "oklch": {
+            "l": 0.93037,
+            "c": 0.02005,
+            "h": 69.987
+          }
+        },
+        "surface-raised": {
+          "hex": "#EBDED0",
+          "rgb": [
+            235,
+            222,
+            208
+          ],
+          "oklch": {
+            "l": 0.9072,
+            "c": 0.02363,
+            "h": 69.583
+          }
+        },
+        "border": {
+          "hex": "#E5D5C5",
+          "rgb": [
+            229,
+            213,
+            197
+          ],
+          "oklch": {
+            "l": 0.88169,
+            "c": 0.02799,
+            "h": 67.452
+          }
+        }
+      },
+      "text": {
+        "foreground": {
+          "hex": "#32232D",
+          "rgb": [
+            50,
+            35,
+            45
+          ],
+          "oklch": {
+            "l": 0.27813,
+            "c": 0.02842,
+            "h": 339.209
+          }
+        },
+        "muted": {
+          "hex": "#58434C",
+          "rgb": [
+            88,
+            67,
+            76
+          ],
+          "oklch": {
+            "l": 0.40846,
+            "c": 0.03202,
+            "h": 351.073
+          }
+        },
+        "subtle": {
+          "hex": "#69505A",
+          "rgb": [
+            105,
+            80,
+            90
+          ],
+          "oklch": {
+            "l": 0.46065,
+            "c": 0.03654,
+            "h": 352.76
+          }
+        },
+        "disabled": {
+          "hex": "#72545F",
+          "rgb": [
+            114,
+            84,
+            95
+          ],
+          "oklch": {
+            "l": 0.48092,
+            "c": 0.04288,
+            "h": 355.006
+          }
+        }
+      }
+    },
+    "dark": {
+      "surface": {
+        "background": {
+          "hex": "#1D171B",
+          "rgb": [
+            29,
+            23,
+            27
+          ],
+          "oklch": {
+            "l": 0.21353,
+            "c": 0.01214,
+            "h": 338.372
+          }
+        },
+        "card": {
+          "hex": "#282026",
+          "rgb": [
+            40,
+            32,
+            38
+          ],
+          "oklch": {
+            "l": 0.25523,
+            "c": 0.01625,
+            "h": 334.912
+          }
+        },
+        "secondary": {
+          "hex": "#32262E",
+          "rgb": [
+            50,
+            38,
+            46
+          ],
+          "oklch": {
+            "l": 0.28562,
+            "c": 0.02259,
+            "h": 338.786
+          }
+        },
+        "surface-muted": {
+          "hex": "#382A32",
+          "rgb": [
+            56,
+            42,
+            50
+          ],
+          "oklch": {
+            "l": 0.30412,
+            "c": 0.02463,
+            "h": 343.407
+          }
+        },
+        "surface-raised": {
+          "hex": "#413039",
+          "rgb": [
+            65,
+            48,
+            57
+          ],
+          "oklch": {
+            "l": 0.3318,
+            "c": 0.02865,
+            "h": 345.699
+          }
+        },
+        "border": {
+          "hex": "#4B3841",
+          "rgb": [
+            75,
+            56,
+            65
+          ],
+          "oklch": {
+            "l": 0.36494,
+            "c": 0.03043,
+            "h": 348.648
+          }
+        }
+      },
+      "text": {
+        "foreground": {
+          "hex": "#FFF9F2",
+          "rgb": [
+            255,
+            249,
+            242
+          ],
+          "oklch": {
+            "l": 0.98482,
+            "c": 0.01128,
+            "h": 71.902
+          }
+        },
+        "muted": {
+          "hex": "#F3E3D8",
+          "rgb": [
+            243,
+            227,
+            216
+          ],
+          "oklch": {
+            "l": 0.92564,
+            "c": 0.02298,
+            "h": 56.947
+          }
+        },
+        "subtle": {
+          "hex": "#DFCEC3",
+          "rgb": [
+            223,
+            206,
+            195
+          ],
+          "oklch": {
+            "l": 0.86231,
+            "c": 0.02428,
+            "h": 55.222
+          }
+        },
+        "disabled": {
+          "hex": "#CAB7AE",
+          "rgb": [
+            202,
+            183,
+            174
+          ],
+          "oklch": {
+            "l": 0.79294,
+            "c": 0.02522,
+            "h": 47.053
+          }
+        }
+      }
+    }
+  },
+  "semanticStatus": {
+    "light": {
+      "success": {
+        "bg": "#E7EEE5",
+        "fg": "#315B40"
+      },
+      "warning": {
+        "bg": "#F7EBD5",
+        "fg": "#75491B"
+      },
+      "error": {
+        "bg": "#F7E3DD",
+        "fg": "#87362D"
+      },
+      "information": {
+        "bg": "#DCEBED",
+        "fg": "#2C5862"
+      }
+    },
+    "dark": {
+      "success": {
+        "bg": "#293A30",
+        "fg": "#CDE5D0"
+      },
+      "warning": {
+        "bg": "#413320",
+        "fg": "#F2DBB6"
+      },
+      "error": {
+        "bg": "#492B2D",
+        "fg": "#F1CFCA"
+      },
+      "information": {
+        "bg": "#283B3E",
+        "fg": "#C9E6E8"
+      }
+    }
+  },
+  "contrastMatrices": {
+    "light": {
+      "foreground": {
+        "background": 13.6926,
+        "card": 14.6189,
+        "secondary": 12.7156,
+        "surface-muted": 12.0737,
+        "surface-raised": 11.2394,
+        "border": 10.3651
+      },
+      "muted": {
+        "background": 8.3372,
+        "card": 8.9012,
+        "secondary": 7.7423,
+        "surface-muted": 7.3514,
+        "surface-raised": 6.8435,
+        "border": 6.3112
+      },
+      "subtle": {
+        "background": 6.6858,
+        "card": 7.138,
+        "secondary": 6.2087,
+        "surface-muted": 5.8953,
+        "surface-raised": 5.488,
+        "border": 5.061
+      },
+      "disabled": {
+        "background": 6.1484,
+        "card": 6.5643,
+        "secondary": 5.7097,
+        "surface-muted": 5.4214,
+        "surface-raised": 5.0468,
+        "border": 4.6542
+      }
+    },
+    "dark": {
+      "foreground": {
+        "background": 16.8688,
+        "card": 15.1602,
+        "secondary": 13.8292,
+        "surface-muted": 12.9963,
+        "surface-raised": 11.7685,
+        "border": 10.3466
+      },
+      "muted": {
+        "background": 14.1019,
+        "card": 12.6736,
+        "secondary": 11.5609,
+        "surface-muted": 10.8646,
+        "surface-raised": 9.8382,
+        "border": 8.6495
+      },
+      "subtle": {
+        "background": 11.552,
+        "card": 10.3819,
+        "secondary": 9.4705,
+        "surface-muted": 8.9001,
+        "surface-raised": 8.0593,
+        "border": 7.0855
+      },
+      "disabled": {
+        "background": 9.1514,
+        "card": 8.2245,
+        "secondary": 7.5024,
+        "surface-muted": 7.0506,
+        "surface-raised": 6.3845,
+        "border": 5.6131
+      }
+    }
+  },
+  "semantic": {
+    "success": {
+      "hex": "#4D735A",
+      "rgb": [
+        77,
+        115,
+        90
+      ],
+      "oklch": {
+        "l": 0.5194,
+        "c": 0.05854,
+        "h": 155.022
+      }
+    },
+    "warning": {
+      "hex": "#8D622B",
+      "rgb": [
+        141,
+        98,
+        43
+      ],
+      "oklch": {
+        "l": 0.53057,
+        "c": 0.09021,
+        "h": 70.215
+      }
+    },
+    "error": {
+      "hex": "#A7443B",
+      "rgb": [
+        167,
+        68,
+        59
+      ],
+      "oklch": {
+        "l": 0.51758,
+        "c": 0.13268,
+        "h": 27.787
+      }
+    },
+    "information": {
+      "hex": "#396C75",
+      "rgb": [
+        57,
+        108,
+        117
+      ],
+      "oklch": {
+        "l": 0.49942,
+        "c": 0.05651,
+        "h": 210.226
+      }
+    }
+  }
+}

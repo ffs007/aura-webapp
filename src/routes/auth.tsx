@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Aviso, CabecalhoPagina } from "@/components/estados";
+import { MarcaAura } from "@/components/MarcaAura";
 import { FOCO } from "@/lib/design";
 import { consumirDestino, destinoSeguro, irPara } from "@/lib/navegacao";
 
@@ -126,9 +127,14 @@ function AuthPage() {
       : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-aura px-4">
-      <div className="w-full max-w-md rounded-[2rem] border bg-card/90 p-8 shadow-soft backdrop-blur animate-rise">
-        <Link to="/" className="font-display text-xl">Aura <em>ID</em></Link>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-aura px-4">
+      {/* Textura de linho do kit de identidade — presença sutil (8%). */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.08] mix-blend-multiply" style={{ backgroundImage: "url(/texturas/linho.png)", backgroundSize: "512px 512px" }} />
+      <div className="relative w-full max-w-md rounded-[2rem] border bg-card/90 p-8 shadow-soft backdrop-blur animate-rise">
+        <Link to="/" className="flex items-center gap-3">
+          <MarcaAura variante="selo" className="size-10" />
+          <span className="font-display text-2xl">Aura <em>ID</em></span>
+        </Link>
         <CabecalhoPagina
           titulo={mode === "in" ? "Que bom te ver" : mode === "up" ? "Comece com calma" : "Recuperar acesso"}
           descricao={mode === "recuperar"

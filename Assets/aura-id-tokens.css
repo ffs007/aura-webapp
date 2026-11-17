@@ -1,0 +1,44 @@
+/* Aura ID · Design tokens v1.0 · official color seeds intact */
+:root, .theme-light {
+  --aura-primary-700: #341424;
+  --aura-primary-500: #4A2036;
+  --aura-primary-300: #956A7F;
+  --aura-secondary-700: #853B25;
+  --aura-secondary-500: #B85C38;
+  --aura-secondary-300: #E0A38A;
+  --aura-gold: #C9A227;
+  --aura-surface-background: #FAF5EE;
+  --aura-surface-card: #FFFDF9;
+  --aura-surface-secondary: #F5ECE2;
+  --aura-surface-muted: #F1E6DA;
+  --aura-surface-raised: #EBDED0;
+  --aura-surface-border: #E5D5C5;
+  --aura-text-foreground: #32232D;
+  --aura-text-muted: #58434C;
+  --aura-text-subtle: #69505A;
+  --aura-text-disabled: #72545F;
+  --aura-state-success: #4D735A;
+  --aura-state-warning: #8D622B;
+  --aura-state-error: #A7443B;
+  --aura-state-information: #396C75;
+  --aura-success-bg: #E7EEE5; --aura-success-fg: #315B40;
+  --aura-warning-bg: #F7EBD5; --aura-warning-fg: #75491B;
+  --aura-error-bg: #F7E3DD; --aura-error-fg: #87362D;
+  --aura-information-bg: #DCEBED; --aura-information-fg: #2C5862;
+}
+.theme-dark {
+  --aura-surface-background: #1D171B;
+  --aura-surface-card: #282026;
+  --aura-surface-secondary: #32262E;
+  --aura-surface-muted: #382A32;
+  --aura-surface-raised: #413039;
+  --aura-surface-border: #4B3841;
+  --aura-text-foreground: #FFF9F2;
+  --aura-text-muted: #F3E3D8;
+  --aura-text-subtle: #DFCEC3;
+  --aura-text-disabled: #CAB7AE;
+  --aura-success-bg: #293A30; --aura-success-fg: #CDE5D0;
+  --aura-warning-bg: #413320; --aura-warning-fg: #F2DBB6;
+  --aura-error-bg: #492B2D; --aura-error-fg: #F1CFCA;
+  --aura-information-bg: #283B3E; --aura-information-fg: #C9E6E8;
+}
