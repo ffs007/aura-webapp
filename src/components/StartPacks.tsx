@@ -14,7 +14,7 @@ export function StartPacks({ limite, className }: { limite?: number; className?:
         <h2 id="comece-por-aqui" className={TITULO_SECAO}>Comece por aqui</h2>
         <p className="mt-1 text-sm text-muted-foreground">Uma situação da vida, um ponto de partida — você ajusta o resto.</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {packs.map((pack) => (
           <a
             key={pack.id}

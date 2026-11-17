@@ -72,7 +72,7 @@ function Dashboard() {
   );
 
   if (!all.length) return (
-    <div className="mx-auto max-w-3xl space-y-8 py-10">
+    <div className="mx-auto max-w-5xl space-y-8 py-10">
       <div className="text-center">
         <h1 className={TITULO_PAGINA}>Vamos começar?</h1>
         <p className="mt-2 text-muted-foreground">Escolha uma situação da vida real abaixo ou abra o Estúdio para montar seu primeiro convite. Você ajusta tudo depois.</p>
@@ -137,7 +137,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {list.map((p) => (
           <Link key={p.id} to={p.kind === "tattoo_plan" ? "/tatuagem/plano/$id" : p.kind === "makeup_look" ? "/maquiagem/look/$id" : p.kind === "hair_plan" ? "/cabelo/plano/$id" : p.kind === "outfit" ? "/roupas/look/$id" : "/package/$id"} params={{ id: p.id }} className={cn(CARTAO_CLICAVEL, "animate-rise")}>
             <div className="flex items-center justify-between gap-2">

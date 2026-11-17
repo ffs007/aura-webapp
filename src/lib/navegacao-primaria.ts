@@ -62,7 +62,7 @@ export type Densidade = "compacta" | "confortavel" | "ampla";
 export const DENSIDADES: { id: Densidade; rotulo: string; classe: string }[] = [
   { id: "compacta", rotulo: "Compacta", classe: "max-w-6xl" },
   { id: "confortavel", rotulo: "Confortável", classe: "max-w-7xl" },
-  { id: "ampla", rotulo: "Ampla", classe: "max-w-[1440px]" },
+  { id: "ampla", rotulo: "Tela cheia", classe: "max-w-none" },
 ];
 const CHAVE = "aura.densidade";
 
@@ -71,9 +71,9 @@ export function lerDensidade(): Densidade {
     const d = localStorage.getItem(CHAVE) as Densidade | null;
     if (d && DENSIDADES.some((x) => x.id === d)) return d;
   } catch { /* sem localStorage */ }
-  return "ampla"; // padrão: aproveitar a largura, sem sobras laterais
+  return "ampla"; // padrão: tela cheia — as grades de cards usam a largura toda
 }
 export function salvarDensidade(d: Densidade) {
   try { localStorage.setItem(CHAVE, d); } catch { /* só preferência */ }
 }
-export const classeDensidade = (d: Densidade) => DENSIDADES.find((x) => x.id === d)?.classe ?? "max-w-[1440px]";
+export const classeDensidade = (d: Densidade) => DENSIDADES.find((x) => x.id === d)?.classe ?? "max-w-none";

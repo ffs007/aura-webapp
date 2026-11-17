@@ -118,7 +118,7 @@ function Page() {
         />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {designs?.map((d) => (
           <article key={d.id} className="flex flex-col overflow-hidden rounded-2xl border bg-card">
             <img src={d.imagem_url} alt={d.titulo} className="aspect-square w-full bg-secondary object-contain" loading="lazy" />

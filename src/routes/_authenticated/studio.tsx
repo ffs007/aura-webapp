@@ -120,7 +120,7 @@ function Studio() {
 
       <div>
         <h2 className={TITULO_SECAO}>O que você quer explorar?</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
           {ENTRY_MODES.map((m) => (
             <button key={m.id} onClick={() => setEntry(m.id)} className={cn("rounded-2xl border p-4 text-left transition", entry === m.id ? "border-accent bg-card shadow-soft" : "bg-card/60 hover:bg-card")}>
               <div className="font-medium">{m.label}</div><div className="text-xs text-muted-foreground">{m.hint}</div>
@@ -132,7 +132,7 @@ function Studio() {
         </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2 lg:max-w-5xl">
         <div className="space-y-5">
           <div className="space-y-2"><Label htmlFor="studio-ocasiao">{entry === "event" ? "O evento (data, lugar, clima)" : "Ocasião ou contexto (opcional)"}</Label><Input id="studio-ocasiao" value={occasion} onChange={(e) => setOccasion(e.target.value)} placeholder={entry === "event" ? "Casamento de amiga, ao ar livre, tarde de março" : "ex.: emprego novo mês que vem"} /></div>
           <div className="space-y-2"><Label>Intensidade desejada</Label><Slider aria-label="Intensidade desejada (1 a 5)" min={1} max={5} step={1} value={[intensity]} onValueChange={([v]) => setIntensity(v ?? 3)} /><div className="flex justify-between text-xs text-muted-foreground"><span>Sutil</span><span>Marcante</span></div></div>
