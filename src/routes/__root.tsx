@@ -16,6 +16,7 @@ import { GuiaRapidoAjuda } from "@/components/GuiaRapidoAjuda";
 import { SCRIPT_ANTI_FLASH } from "@/hooks/useTema";
 import { supabase } from "@/integrations/supabase/client";
 import { iniciarInstrumentacao } from "@/lib/instrumentacao";
+import { iniciarPixelMeta } from "@/lib/pixel-meta";
 import { IMAGEM_COMPARTILHAMENTO, urlAbsoluta } from "@/lib/site";
 
 import appCss from "../styles.css?url";
@@ -158,8 +159,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   // Instrumentação (Onda 3 · 2.7): telas visitadas e erros globais, uma vez só.
+  // Pixel do Meta (opcional): só carrega se VITE_META_PIXEL_ID estiver definida.
   useEffect(() => {
     iniciarInstrumentacao();
+    iniciarPixelMeta();
   }, []);
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {

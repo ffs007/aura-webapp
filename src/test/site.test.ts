@@ -28,7 +28,7 @@ describe("domínio oficial", () => {
   });
 
   it("aponta a arte de compartilhamento para public/", () => {
-    expect(IMAGEM_COMPARTILHAMENTO).toBe("/og-aura-id.png");
-    expect(urlAbsoluta(IMAGEM_COMPARTILHAMENTO)).toBe(`${DOMINIO_OFICIAL}/og-aura-id.png`);
+    expect(IMAGEM_COMPARTILHAMENTO).toBe("/og-aura-id.jpg");
+    expect(urlAbsoluta(IMAGEM_COMPARTILHAMENTO)).toBe(`${DOMINIO_OFICIAL}/og-aura-id.jpg`);
   });
 });

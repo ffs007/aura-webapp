@@ -10,6 +10,7 @@ import { Aviso, CabecalhoPagina } from "@/components/estados";
 import { MarcaAura } from "@/components/MarcaAura";
 import { FOCO } from "@/lib/design";
 import { consumirDestino, destinoSeguro, irPara } from "@/lib/navegacao";
+import { eventoMeta } from "@/lib/pixel-meta";
 
 /** Erros do Supabase Auth em linguagem de gente (leigo não lê inglês cru). */
 const ERROS_PT: [RegExp, string][] = [
@@ -97,6 +98,7 @@ function AuthPage() {
         ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
         : await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: window.location.origin + "/auth" } });
       if (error) { setErroForm(traduzErro(error.message)); return; }
+      if (mode === "up") eventoMeta("CompleteRegistration");
       if (mode === "up" && !data.session) toast.success("Confira sua caixa de entrada para confirmar o e-mail.");
     } finally {
       setBusy(false);

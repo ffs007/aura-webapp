@@ -20,5 +20,5 @@ export function urlAbsoluta(caminho = "/"): string {
   return `${urlDoSite()}${limpo.startsWith("/") ? limpo : `/${limpo}`}`;
 }
 
-/** Caminho da arte de compartilhamento (1200×630) servida em `public/`. */
-export const IMAGEM_COMPARTILHAMENTO = "/og-aura-id.png";
+/** Caminho da arte de compartilhamento (1200×630 JPEG ≤300KB) servida em `public/`. */
+export const IMAGEM_COMPARTILHAMENTO = "/og-aura-id.jpg";

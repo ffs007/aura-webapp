@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Aviso, Cartao } from '@/components/estados';
 import { TITULO_ITEM, TITULO_SECAO } from '@/lib/design';
 import { passStatus, portalUrl, createCheckout, AURA_PASS_PRECO, type PassStatus } from '@/lib/stripe.functions';
+import { eventoMeta } from '@/lib/pixel-meta';
 
 export const Route = createFileRoute('/_authenticated/aura-pass')({
   validateSearch: z.object({ checkout: z.string().optional() }),
@@ -24,6 +25,8 @@ function Page() {
   useEffect(() => { void carregar(); }, []);
   useEffect(() => {
     if (checkout !== 'success') return;
+    // Conversão do anúncio: o checkout concluiu (o webhook confirma o Pass de verdade).
+    eventoMeta('Purchase', { value: 19.9, currency: 'BRL' });
     const tentativas = [3000, 4000, 5000].map((ms) => setTimeout(() => void carregar(), ms));
     return () => tentativas.forEach(clearTimeout);
   }, [checkout]);

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Aura ID — Sistema tipográfico 1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ivory:#FAF5EE;--wine:#4A2036;--clay:#B85C38;--sand:#F1E6DA;--paper:#FFFDF9;--ink:#32232D;--muted:#69505A;--line:#E5D5C5;--serif:'Cormorant Garamond','EB Garamond',Georgia,serif;--sans:'Karla','Cabin',Arial,sans-serif;}
+*{box-sizing:border-box;} body{margin:0;background:#e3d8cb;font-family:var(--sans);color:var(--ink);} 
+.board{width:2300px;height:1540px; padding:44px 56px 36px; background:var(--ivory);position:relative;overflow:hidden;}
+.board:before{content:'';position:absolute;width:560px;height:560px;right:-330px;top:-330px;border:1px solid #b85c3840;border-radius:50%;} .board:after{content:'';position:absolute;bottom:-290px;left:-270px;width:500px;height:500px;border:1px solid #b85c3833;border-radius:50%;}
+.head{height:153px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--line);margin-bottom:20px;}
+.wordmark{display:flex;align-items:baseline;gap:34px;}.aura{font-family:var(--serif);font-size:98px;line-height:1;color:var(--wine);font-weight:500;letter-spacing:-.026em;white-space:nowrap}.aura em{font-weight:400;}
+.head-rule{height:75px;width:2px;background:var(--clay);opacity:.65} .hgroup h1{font-size:25px;letter-spacing:.18em;margin:0 0 12px;color:var(--wine);font-weight:700}.hgroup p{font-size:22px;margin:0;color:var(--muted)}
+.head-chip{padding:20px 24px;border-radius:999px;background:#F4E7DB;border:1px solid #E4D2C5;font-family:var(--serif);font-size:35px;color:var(--wine);white-space:nowrap}.head-chip i{color:#944b38;}
+.main{display:grid;grid-template-columns:585px 785px 1fr;gap:19px;height:1090px;} .column{display:flex;flex-direction:column;gap:17px;min-width:0}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:29px 32px;min-width:0;overflow:hidden;box-shadow:0 3px 12px rgba(74,32,54,.02)}
+.panel h2{margin:0 0 27px;color:var(--wine);font-size:22px;letter-spacing:.145em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:14px;}
+.panel h2:after{content:'';display:block;height:1px;background:#d9c7b8;flex:1}
+.fonts{height:447px;}
+.font-line{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:156px;gap:18px}
+.font-line+.font-line{border-top:1px solid var(--line);padding-top:18px;margin-top:5px;}
+.font-line strong{display:block;font-family:var(--serif);font-size:45px;line-height:1.08;color:var(--wine);font-weight:500;letter-spacing:-.02em}
+.font-line .sans-strong{font-family:var(--sans);font-weight:600;font-size:39px;letter-spacing:-.035em}
+.font-line p{margin:13px 0 0;font-size:20px;line-height:1.35;color:var(--muted);max-width:370px}
+.font-line .aa{font-family:var(--serif);font-weight:500;color:var(--wine);font-size:96px;line-height:1;flex-shrink:0}
+.font-line .aa.sans{font-family:var(--sans);font-size:76px;font-weight:400}
+.alt{height:470px;} .alt-label{font-size:16px;font-weight:700;letter-spacing:.11em;color:var(--clay);text-transform:uppercase;margin:14px 0 9px;}
+.alt-item{display:grid;grid-template-columns:210px 1fr;gap:14px;align-items:start;border-bottom:1px solid #e9dbcf;padding:8px 0 13px}
+.alt-item:last-child{border-bottom:0;}
+.alt-item .name{font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.07;color:var(--wine)}
+.alt-item .name.sans{font-family:var(--sans);font-size:25px;font-weight:600}
+.alt-item .desc{font-size:17px;line-height:1.25;color:var(--muted)}
+.micro{height:138px;background:var(--sand);display:flex;align-items:center;gap:18px;padding:21px 26px;}
+.micro .mark{font-family:var(--serif);font-size:75px;color:var(--wine);line-height:1}
+.micro .meta{font-size:18px;line-height:1.3;color:var(--muted)}.micro .meta b{color:var(--wine)}
+.scale{height:705px; padding:29px 29px;} .scale h2{margin-bottom:22px}.scale table{border-collapse:collapse;width:100%;font-size:20px;table-layout:fixed;color:var(--ink)}
+.scale thead tr{height:66px;background:#f1e6da;}.scale th{text-align:left;padding:13px 10px;color:var(--wine);font-size:16px;letter-spacing:.012em;line-height:1.2;text-transform:uppercase;}
+.scale td{padding:12px 10px 10px;border-bottom:1px solid #e9dcd1;vertical-align:middle;line-height:1.1;}
+.scale tr:last-child td{border-bottom:0;}.scale td .type{font-size:23px;color:var(--wine);font-weight:700}.scale td small{font-size:16px;color:#72545f}.scale td .rem{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}.scale td:nth-child(3),.scale td:nth-child(4),.scale td:nth-child(5),.scale td:nth-child(6){font-variant-numeric:tabular-nums}
+.rules{height:368px}.rule{display:flex;gap:21px;align-items:flex-start;margin:18px 0 0;padding-top:17px;border-top:1px solid #e9dbce}.rule:first-of-type{margin-top:0;padding-top:0;border:0}.rule .symbol{width:51px;flex-shrink:0;text-align:center;font-family:var(--serif);font-size:51px;line-height:1;color:var(--clay)}
+.rule .description{font-size:19px;line-height:1.3;color:var(--muted)}.rule b{color:var(--wine)}
+.spec{height:1090px;padding:28px 29px}.spec h2{margin-bottom:9px}.spec .hint{font-size:18px;color:var(--muted);padding-bottom:17px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.spec-row{display:flex;gap:19px;border-bottom:1px solid var(--line);padding:12px 0 10px;align-items:center;min-width:0;}
+.spec-row:last-child{border:0}.spec-label{width:136px;flex-shrink:0;border-right:1px solid #d9c7b8;padding-right:12px;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:7px}
+.spec-label b{font-size:18px;letter-spacing:.065em;color:var(--wine)}.spec-label span{font-size:16px;color:var(--muted);font-variant-numeric:tabular-nums}
+.spec-content{min-width:0;flex:1;color:var(--wine);overflow:hidden}
+.spec-content.serif{font-family:var(--serif);font-weight:500;letter-spacing:-.02em}
+.spec-content.sans{font-family:var(--sans)}
+.display{height:235px}.display .spec-content{font-size:80px;line-height:1.02;letter-spacing:-.025em}
+.h1{height:190px}.h1 .spec-content{font-size:60px;line-height:1.08;letter-spacing:-.02em}
+.h2{height:152px}.h2 .spec-content{font-size:40px;line-height:1.15;letter-spacing:-.012em;font-weight:600}
+.h3{height:120px}.h3 .spec-content{font-size:28px;line-height:1.2;letter-spacing:-.01em;font-weight:600}
+.body{height:94px}.body .spec-content{font-size:16px;line-height:1.6;color:var(--ink)}
+.support{height:84px}.support .spec-content{font-size:14px;line-height:1.5;color:var(--ink)}
+.label{height:81px}.label .spec-content{font-size:12px;line-height:1.35;letter-spacing:.06em;color:var(--wine);font-weight:700;text-transform:uppercase}
+.spec-content em{font-weight:400;color:#9e4f3c}
+.footer{margin-top:19px;height:160px;display:grid;grid-template-columns:1fr 500px 460px;gap:17px;}
+.foot-card{border:1px solid var(--line);background:#FFFDF9;border-radius:19px;padding:22px 24px;overflow:hidden}
+.foot-title{font-size:16px;letter-spacing:.13em;text-transform:uppercase;color:var(--clay);font-weight:700;margin-bottom:14px}
+.foot-card button{border:none;border-radius:12px;background:var(--wine);color:var(--ivory);padding:15px 28px;font-family:var(--sans);font-size:20px;font-weight:600;}
+.foot-card .chip{display:inline-flex;background:var(--sand);color:var(--wine);padding:14px 17px;margin-left:13px;border-radius:999px;font-size:18px;font-weight:600}
+.foot-card .count{font-size:37px;font-weight:700;color:var(--wine);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.foot-card p{margin:7px 0 0;font-size:17px;line-height:1.22;color:var(--muted)}
+.foot-card .approved{font-size:22px;line-height:1.3;color:var(--wine)}
+@media (max-width: 900px){body{overflow:auto}}
+@media print{body{background:white}.board{break-inside:avoid;}}
+</style></head>
+<body><main class="board">
+<header class="head">
+ <div class="wordmark"><div class="aura">Aura <em>ID</em></div><span class="head-rule"></span><div class="hgroup"><h1>SISTEMA TIPOGRÁFICO</h1><p>Elegância sem distância. Clareza sem julgamentos.</p></div></div>
+ <div class="head-chip">Sugestões, nunca <i>julgamentos.</i></div>
+</header>
+<section class="main">
+ <div class="column">
+  <article class="panel fonts"><h2>01 · Fontes oficiais</h2>
+   <div class="font-line"><div><strong>Cormorant<br/>Garamond</strong><p>Títulos e frases de destaque · editorial, expressiva e delicada.</p></div><div class="aa">Aa</div></div>
+   <div class="font-line"><div><strong class="sans-strong">Karla</strong><p>Corpo, botões e interface · humanista, próxima e legível.</p></div><div class="aa sans">Aa</div></div>
+  </article>
+  <article class="panel alt"><h2>02 · Substitutas gratuitas</h2>
+   <div class="alt-label">Títulos · serifadas</div>
+   <div class="alt-item"><div class="name">Playfair Display</div><div class="desc">Contraste elegante e presença editorial; ideal para campanhas e destaques.</div></div>
+   <div class="alt-item"><div class="name">Lora</div><div class="desc">Curvas cálidas e leitura estável em telas; alternativa menos ornamental.</div></div>
+   <div class="alt-label">Corpo · sans humanistas</div>
+   <div class="alt-item"><div class="name sans">Source Sans 3</div><div class="desc">Aberturas claras e excelente leitura em formulários e textos extensos.</div></div>
+   <div class="alt-item"><div class="name sans">Nunito Sans</div><div class="desc">Suavidade amigável sem perder consistência em componentes digitais.</div></div>
+  </article>
+  <article class="panel micro"><div class="mark">Ag</div><div class="meta"><b>Caráter da marca:</b> refinamento + proximidade.<br/>Todas as fontes citadas estão no Google Fonts.</div></article>
+ </div>
+ <div class="column">
+  <article class="panel scale"><h2>03 · Escala responsiva</h2>
+  <table><colgroup><col style="width:22%"><col style="width:15%"><col style="width:16%"><col style="width:11%"><col style="width:15%"><col style="width:21%"></colgroup>
+   <thead><tr><th>Nível</th><th>Mobile<br/>rem</th><th>Desktop<br/>rem</th><th>Peso</th><th>Entrelinha</th><th>Entreletras</th></tr></thead>
+   <tbody>
+    <tr><td><span class="type">Display</span><br/><small>Serif</small></td><td><span class="rem">4.00</span></td><td><span class="rem">5.00</span></td><td>500</td><td>1.05</td><td>−0.025em</td></tr>
+    <tr><td><span class="type">H1</span><br/><small>Serif</small></td><td><span class="rem">3.00</span></td><td><span class="rem">3.75</span></td><td>500</td><td>1.10</td><td>−0.020em</td></tr>
+    <tr><td><span class="type">H2</span><br/><small>Serif</small></td><td><span class="rem">2.00</span></td><td><span class="rem">2.50</span></td><td>600</td><td>1.15</td><td>−0.012em</td></tr>
+    <tr><td><span class="type">H3</span><br/><small>Serif</small></td><td><span class="rem">1.50</span></td><td><span class="rem">1.75</span></td><td>600</td><td>1.20</td><td>−0.010em</td></tr>
+    <tr><td><span class="type">Corpo</span><br/><small>Sans</small></td><td><span class="rem">1.00</span></td><td><span class="rem">1.00</span></td><td>400</td><td>1.60</td><td>0em</td></tr>
+    <tr><td><span class="type">Apoio</span><br/><small>Sans</small></td><td><span class="rem">0.875</span></td><td><span class="rem">0.875</span></td><td>400</td><td>1.50</td><td>+0.005em</td></tr>
+    <tr><td><span class="type">Rótulo</span><br/><small>Sans</small></td><td><span class="rem">0.75</span></td><td><span class="rem">0.75</span></td><td>700</td><td>1.35</td><td>+0.060em</td></tr>
+   </tbody></table>
+  </article>
+  <article class="panel rules"><h2>04 · Regras de composição</h2>
+   <div class="rule"><div class="symbol" style="font-style:italic">Id</div><div class="description"><b>Itálico: uso restrito.</b> Somente no “ID” do wordmark e em frases editoriais de destaque — nunca em textos funcionais.</div></div>
+   <div class="rule"><div class="symbol" style="font-family:var(--sans);font-size:39px">Aa</div><div class="description"><b>Botões, chips, inputs e navegação:</b> sempre Karla; nenhum componente de ação recebe serifada.</div></div>
+   <div class="rule"><div class="symbol" style="font-family:var(--sans);font-size:39px">012</div><div class="description"><b>Contagens e medidas:</b> <span style="font-variant-numeric:tabular-nums">font-variant-numeric: tabular-nums</span>. Evita saltos em valores dinâmicos.</div></div>
+  </article>
+ </div>
+ <div class="column">
+  <article class="panel spec"><h2>05 · Specimen · frase-símbolo</h2><div class="hint">Uma voz, sete intensidades · tamanhos desktop</div>
+    <div class="spec-row display"><div class="spec-label"><b>DISPLAY</b><span>4 / 5 rem</span></div><div class="spec-content serif">Sugestões, nunca <em>julgamentos.</em></div></div>
+    <div class="spec-row h1"><div class="spec-label"><b>H1</b><span>3 / 3.75 rem</span></div><div class="spec-content serif">Sugestões, nunca julgamentos.</div></div>
+    <div class="spec-row h2"><div class="spec-label"><b>H2</b><span>2 / 2.5 rem</span></div><div class="spec-content serif">Sugestões, nunca julgamentos.</div></div>
+    <div class="spec-row h3"><div class="spec-label"><b>H3</b><span>1.5 / 1.75 rem</span></div><div class="spec-content serif">Sugestões, nunca julgamentos.</div></div>
+    <div class="spec-row body"><div class="spec-label"><b>CORPO</b><span>1 rem</span></div><div class="spec-content sans">Sugestões, nunca julgamentos.</div></div>
+    <div class="spec-row support"><div class="spec-label"><b>APOIO</b><span>0.875 rem</span></div><div class="spec-content sans">Sugestões, nunca julgamentos.</div></div>
+    <div class="spec-row label"><div class="spec-label"><b>RÓTULO</b><span>0.75 rem</span></div><div class="spec-content sans">Sugestões, nunca julgamentos.</div></div>
+  </article>
+ </div>
+</section>
+<footer class="footer"><div class="foot-card"><div class="foot-title">Exemplos de interface · sempre Karla</div><button>Começar agora &nbsp;→</button><span class="chip">Meu estilo</span><span class="chip">Cuidado pessoal</span><span class="chip">Barbearia</span></div>
+<div class="foot-card"><div class="foot-title">Números tabulares · variação controlada</div><div class="count">001 &nbsp; 012 &nbsp; 100 &nbsp; 1.250</div><p>Use em métricas, contagens e preços.</p></div>
+<div class="foot-card"><div class="foot-title">Regra base</div><div class="approved">1 rem = 16 px · escalas fixadas em mobile e desktop</div><p>Logotipo é ativo vetorial; não recriar o wordmark com CSS em produção.</p></div></footer>
+</main></body></html>
