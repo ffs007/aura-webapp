@@ -10,19 +10,8 @@ import { Aviso, CabecalhoPagina } from "@/components/estados";
 import { MarcaAura } from "@/components/MarcaAura";
 import { FOCO } from "@/lib/design";
 import { consumirDestino, destinoSeguro, irPara } from "@/lib/navegacao";
+import { mensagemSenhaFraca, traduzErroAuth } from "@/lib/erros-auth";
 import { eventoMeta } from "@/lib/pixel-meta";
-
-/** Erros do Supabase Auth em linguagem de gente (leigo não lê inglês cru). */
-const ERROS_PT: [RegExp, string][] = [
-  [/at least 6 characters/i, "A senha precisa ter pelo menos 8 caracteres."],
-  [/invalid login credentials/i, "E-mail ou senha incorretos. Confira e tente de novo."],
-  [/email not confirmed/i, "Confirme seu e-mail antes de entrar — olhe a caixa de entrada (e o spam)."],
-  [/already (been )?registered|already registered/i, "Este e-mail já tem conta. Toque em “Já tem conta? Entre”."],
-  [/rate limit|too many|only request this after/i, "Muitas tentativas em pouco tempo. Respire e tente de novo em alguns minutos."],
-  [/unable to validate|validation failed/i, "Confira o e-mail digitado."],
-  [/weak password|password should/i, "Escolha uma senha mais forte, com pelo menos 8 caracteres."],
-];
-const traduzErro = (msg: string) => ERROS_PT.find(([re]) => re.test(msg))?.[1] ?? "Algo deu errado. Tente novamente.";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>): { motivo?: "sessao" | "conexao"; redirect?: string } => {
@@ -52,6 +41,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"in" | "up" | "recuperar">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [avisoRecuperacao, setAvisoRecuperacao] = useState("");
@@ -91,13 +81,25 @@ function AuthPage() {
         );
         setMode("in");
         setPassword("");
-        if (error) setErroForm(traduzErro(error.message));
+        if (error) setErroForm(traduzErroAuth(error.message));
         return;
+      }
+      if (mode === "up") {
+        // Mesma política do painel Supabase, explicada ANTES de bater no servidor.
+        const dica = mensagemSenhaFraca(password);
+        if (dica) { setErroForm(dica); return; }
       }
       const { error, data } = mode === "in"
         ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: window.location.origin + "/auth" } });
-      if (error) { setErroForm(traduzErro(error.message)); return; }
+        : await supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: {
+              emailRedirectTo: window.location.origin + "/auth",
+              ...(nome.trim() ? { data: { full_name: nome.trim() } } : {}),
+            },
+          });
+      if (error) { setErroForm(traduzErroAuth(error.message)); return; }
       if (mode === "up") eventoMeta("CompleteRegistration");
       if (mode === "up" && !data.session) toast.success("Confira sua caixa de entrada para confirmar o e-mail.");
     } finally {
@@ -115,11 +117,11 @@ function AuthPage() {
         provider: "google",
         options: { redirectTo: window.location.origin + "/auth" },
       });
-      if (error) { setErroForm(traduzErro(error.message ?? "")); setGoogleBusy(false); }
+      if (error) { setErroForm(traduzErroAuth(error.message ?? "")); setGoogleBusy(false); }
       return;
     }
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/auth" });
-    if (r.error) { setErroForm(traduzErro(r.error.message ?? "")); setGoogleBusy(false); }
+    if (r.error) { setErroForm(traduzErroAuth(r.error.message ?? "")); setGoogleBusy(false); }
   }
 
   const aviso = search.motivo === "sessao"
@@ -159,7 +161,15 @@ function AuthPage() {
           {mode !== "recuperar" && (
             <div><Label htmlFor="p">Senha</Label><Input id="p" type="password" required minLength={8} autoComplete={mode === "in" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
           )}
-          {mode === "up" && <p className="text-xs text-muted-foreground">Use pelo menos 8 caracteres.</p>}
+          {mode === "up" && (
+            <>
+              <p className="text-xs text-muted-foreground">Mínimo 8 caracteres, com letra maiúscula, minúscula e número — e não pode ser uma senha comum.</p>
+              <div>
+                <Label htmlFor="n">Como te chamamos? <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+                <Input id="n" type="text" maxLength={60} autoComplete="given-name" placeholder="ex.: Lilian" value={nome} onChange={(e) => setNome(e.target.value)} />
+              </div>
+            </>
+          )}
           {mode === "recuperar" && <p className="text-xs text-muted-foreground">Ao abrir o link do e-mail, você cria a senha nova em uma tela própria.</p>}
           {erroForm && (
             <Aviso tom="atencao" acoes={<Button type="button" size="sm" variant="outline" onClick={() => { setErroForm(""); formRef.current?.requestSubmit(); }}>Tentar novamente</Button>}>

@@ -15,19 +15,7 @@ import { cn } from "@/lib/utils";
 import { useModoVisual, type ModoVisual } from "@/hooks/useModoVisual";
 import { CONSENT_ITEMS, fmtDateTime, logEvent } from "@/lib/aura";
 import { deleteAccount, exportarMeusDados } from "@/lib/aura.functions";
-
-/** Erros do Supabase Auth em português — nunca mostrar a mensagem crua. */
-const ERROS_AUTH: [RegExp, string][] = [
-  [/at least 6 characters|password should/i, "A senha precisa ter pelo menos 8 caracteres."],
-  [/same (as|email|password)|should be different/i, "Escolha um valor diferente do atual."],
-  [/invalid email|unable to validate|validation failed/i, "Confira o e-mail digitado."],
-  [/rate limit|too many|only request this after/i, "Muitas tentativas em pouco tempo. Tente de novo em alguns minutos."],
-  [/session|jwt|not authenticated|expired|refresh token/i, "Sua sessão expirou. Entre novamente para concluir."],
-];
-
-function traduzErroAuth(mensagem: string): string {
-  return ERROS_AUTH.find(([padrao]) => padrao.test(mensagem))?.[1] ?? "Não foi possível concluir agora. Tente de novo.";
-}
+import { traduzErroAuth } from "@/lib/erros-auth";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -162,7 +150,7 @@ function Settings() {
     setSalvandoNome(true);
     try {
       const { error } = await supabase.auth.updateUser({ data: { nome: limpo } });
-      if (error) { toast.error(traduzErroAuth(error.message)); return; }
+      if (error) { toast.error(traduzErroAuth(error.message, "Não foi possível concluir agora. Tente de novo.")); return; }
       setNome(limpo);
       toast.success("Nome atualizado.");
     } catch {
@@ -180,7 +168,7 @@ function Settings() {
     setAvisoEmail("");
     try {
       const { error } = await supabase.auth.updateUser({ email: limpo });
-      if (error) { toast.error(traduzErroAuth(error.message)); return; }
+      if (error) { toast.error(traduzErroAuth(error.message, "Não foi possível concluir agora. Tente de novo.")); return; }
       setAvisoEmail(
         `Se o envio de e-mails estiver disponível, você receberá um link de confirmação em ${limpo} (e talvez também no e-mail atual). A troca só vale depois de confirmar — até lá, continue entrando com o e-mail de sempre.`,
       );
@@ -198,7 +186,7 @@ function Settings() {
     setTrocandoSenha(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: novaSenha });
-      if (error) { toast.error(traduzErroAuth(error.message)); return; }
+      if (error) { toast.error(traduzErroAuth(error.message, "Não foi possível concluir agora. Tente de novo.")); return; }
       setNovaSenha("");
       setConfirmarSenha("");
       toast.success("Senha atualizada.");

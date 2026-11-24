@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Aviso, CabecalhoPagina, CarregandoPagina } from "@/components/estados";
+import { traduzErroAuth } from "@/lib/erros-auth";
 
 /**
  * Rota PÚBLICA de redefinição de senha (/redefinir-senha), fora do gate
@@ -14,18 +15,6 @@ import { Aviso, CabecalhoPagina, CarregandoPagina } from "@/components/estados";
  * explicamos como pedir outro link — sem prometer um e-mail que o ambiente
  * talvez não entregue (SMTP pode não estar configurado).
  */
-
-/** Erros do Supabase Auth em português — nunca mostrar a mensagem crua. */
-const ERROS_AUTH: [RegExp, string][] = [
-  [/at least 6 characters|password should|weak password/i, "A senha precisa ter pelo menos 8 caracteres."],
-  [/same (as|password)|should be different/i, "Escolha uma senha diferente da atual."],
-  [/rate limit|too many/i, "Muitas tentativas em pouco tempo. Tente de novo em alguns minutos."],
-  [/session|jwt|not authenticated|expired|refresh token|token/i, "O link expirou ou a sessão não é mais válida. Peça um novo link de recuperação."],
-];
-
-function traduzErroAuth(mensagem: string): string {
-  return ERROS_AUTH.find(([padrao]) => padrao.test(mensagem))?.[1] ?? "Não foi possível salvar a senha agora. Tente novamente.";
-}
 
 export const Route = createFileRoute("/redefinir-senha")({
   head: () => ({
@@ -74,7 +63,7 @@ function Page() {
     setSalvando(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: senha });
-      if (error) { setErro(traduzErroAuth(error.message)); return; }
+      if (error) { setErro(traduzErroAuth(error.message, "Não foi possível salvar a senha agora. Tente novamente.")); return; }
       toast.success("Senha atualizada! Entre com a nova senha.");
       try { await supabase.auth.signOut(); } catch { /* sessão local pode já ter caído */ }
       nav({ to: "/auth" });
